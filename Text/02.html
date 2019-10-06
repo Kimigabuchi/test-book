@@ -1,0 +1,839 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Deep Learning with Python</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../Styles/stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../Styles/page_styles.css" rel="stylesheet" type="text/css"/>
+</head>
+  <body class="calibre">
+  <h1 class="part" id="ch02">Chapter 2. <a class="calibre3" id="ch02__title"></a>Before we begin: the mathematical building blocks of neural networks</h1>
+
+  <p class="noind1">This chapter covers</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">A first example of a neural network</li>
+
+    <li class="calibre17">Tensors and tensor operations</li>
+
+    <li class="calibre17">How neural networks learn via backpropagation and gradient descent</li>
+  </ul>
+
+  <p class="noind">Understanding deep learning requires familiarity with many simple mathematical concepts: tensors, tensor operations, differentiation, gradient descent, and so on. Our goal in this chapter will be to build your intuition about these notions without getting overly technical. In particular, we’ll steer away from mathematical notation, which can be off-putting for those without any mathematics background and isn’t strictly necessary to explain things well.</p>
+
+  <p class="noind">To add some context for tensors and gradient descent, we’ll begin the chapter with a practical example of a neural network. Then we’ll go over every new concept that’s been introduced, point by point. Keep in mind that these concepts will be essential for you to understand the practical examples that will come in the following chapters!</p>
+
+  <p class="noind">After reading this chapter, you’ll have an intuitive understanding of how neural networks work, and you’ll be able to move on to practical applications—which will start with <a href="../Text/03.html#ch03">chapter 3</a>.</p>
+
+  <h2 class="head" id="ch02lev1sec1"><a class="calibre3" id="ch02lev1sec1__title"></a>2.1. A first look at a neural network</h2>
+
+  <p class="noind"><a id="iddle1093"></a><a id="iddle1186"></a><a id="iddle1478"></a><a id="iddle1490"></a><a id="iddle1608"></a><a id="iddle1661"></a><a id="iddle1720"></a><a id="iddle2008"></a>Let’s look at a concrete example of a neural network that uses the Python library Keras to learn to classify handwritten digits. Unless you already have experience with Keras or similar libraries, you won’t understand everything about this first example right away. You probably haven’t even installed Keras yet; that’s fine. In the next chapter, we’ll review each element in the example and explain them in detail. So don’t worry if some steps seem arbitrary or look like magic to you! We’ve got to start somewhere.</p>
+
+  <p class="noind">The problem we’re trying to solve here is to classify grayscale images of handwritten digits (28 × 28 pixels) into their 10 categories (0 through 9). We’ll use the MNIST dataset, a classic in the machine-learning community, which has been around almost as long as the field itself and has been intensively studied. It’s a set of 60,000 training images, plus 10,000 test images, assembled by the National Institute of Standards and Technology (the NIST in MNIST) in the 1980s. You can think of “solving” MNIST as the “Hello World” of deep learning—it’s what you do to verify that your algorithms are working as expected. As you become a machine-learning practitioner, you’ll see MNIST come up over and over again, in scientific papers, blog posts, and so on. You can see some MNIST samples in <a href="#ch02fig01">figure 2.1</a>.</p>
+
+  <p class="notetitle" id="ch02fig01">Figure 2.1. <a id="ch02fig01__title"></a>MNIST sample digits</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig01.jpg"/></p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch02sb01">Note on classes and labels</b>
+
+    <p class="noind">In machine learning, a <i class="calibre5">category</i> in a classification problem is called a <i class="calibre5">class</i>. Data points are called <i class="calibre5">samples</i>. The class associated with a specific sample is called a <i class="calibre5">label</i>.</p>
+  </div>
+  <hr class="calibre25"/>
+
+  <p class="noind">You don’t need to try to reproduce this example on your machine just now. If you wish to, you’ll first need to set up Keras, which is covered in <a href="../Text/03.html#ch03lev1sec3">section 3.3</a>.</p>
+
+  <p class="noind">The MNIST dataset comes preloaded in Keras, in the form of a set of four Numpy arrays.</p>
+
+  <p class="notetitle" id="ch02ex01">Listing 2.1. <a id="ch02ex01__title"></a>Loading the MNIST dataset in Keras</p>
+  <pre class="calibre4" id="PLd0e2408">from keras.datasets import mnist
+(train_images, train_labels), (test_images, test_labels) = mnist.load_data()</pre>
+
+  <p class="noind"><kbd class="calibre24">train_images</kbd> and <kbd class="calibre24">train_labels</kbd> form the <i class="calibre5">training set</i>, the data that the model will learn from. The model will then be tested on the <i class="calibre5">test set</i>, <kbd class="calibre24">test_images</kbd> and <kbd class="calibre24">test_labels</kbd>. <a id="iddle1185"></a><a id="iddle1225"></a><a id="iddle1726"></a><a id="iddle1841"></a><a id="iddle1910"></a>The images are encoded as Numpy arrays, and the labels are an array of digits, ranging from 0 to 9. The images and labels have a one-to-one correspondence.</p>
+
+  <p class="noind">Let’s look at the training data:</p>
+  <pre class="calibre4" id="PLd0e2467">&gt;&gt;&gt; train_images.shape
+(60000, 28, 28)
+&gt;&gt;&gt; len(train_labels)
+60000
+&gt;&gt;&gt; train_labels
+array([5, 0, 4, ..., 5, 6, 8], dtype=uint8)</pre>
+
+  <p class="noind">And here’s the test data:</p>
+  <pre class="calibre4" id="PLd0e2476">&gt;&gt;&gt; test_images.shape
+(10000, 28, 28)
+&gt;&gt;&gt; len(test_labels)
+10000
+&gt;&gt;&gt; test_labels
+array([7, 2, 1, ..., 4, 5, 6], dtype=uint8)</pre>
+
+  <p class="noind">The workflow will be as follows: First, we’ll feed the neural network the training data, <kbd class="calibre24">train_images</kbd> and <kbd class="calibre24">train_labels</kbd>. The network will then learn to associate images and labels. Finally, we’ll ask the network to produce predictions for <kbd class="calibre24">test_images</kbd>, and we’ll verify whether these predictions match the labels from <kbd class="calibre24">test_labels</kbd>.</p>
+
+  <p class="noind">Let’s build the network—again, remember that you aren’t expected to understand everything about this example yet.</p>
+
+  <p class="notetitle" id="ch02ex02">Listing 2.2. <a id="ch02ex02__title"></a>The network architecture</p>
+  <pre class="calibre4" id="PLd0e2503">from keras import models
+from keras import layers
+
+network = models.Sequential()
+network.add(layers.Dense(512, activation='relu', input_shape=(28 * 28,)))
+network.add(layers.Dense(10, activation='softmax'))</pre>
+
+  <p class="noind">The core building block of neural networks is the <i class="calibre5">layer</i>, a data-processing module that you can think of as a filter for data. Some data goes in, and it comes out in a more useful form. Specifically, layers extract <i class="calibre5">representations</i> out of the data fed into them—hopefully, representations that are more meaningful for the problem at hand. Most of deep learning consists of chaining together simple layers that will implement a form of progressive <i class="calibre5">data distillation</i>. A deep-learning model is like a sieve for data processing, made of a succession of increasingly refined data filters—the layers.</p>
+
+  <p class="noind">Here, our network consists of a sequence of two <kbd class="calibre24">Dense</kbd> layers, which are densely connected (also called <i class="calibre5">fully connected</i>) neural layers. The second (and last) layer is a 10-way <i class="calibre5">softmax</i> layer, which means it will return an array of 10 probability scores (summing to 1). Each score will be the probability that the current digit image belongs to one of our 10 digit classes.</p>
+
+  <p class="noind"><a id="iddle1100"></a><a id="iddle1291"></a><a id="iddle1295"></a><a id="iddle1528"></a><a id="iddle1601"></a><a id="iddle1750"></a>To make the network ready for training, we need to pick three more things, as part of the <i class="calibre5">compilation</i> step:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><b class="calibre22">A loss function—</b> How the network will be able to measure its performance on the training data, and thus how it will be able to steer itself in the right direction.</li>
+
+    <li class="calibre17"><b class="calibre22">An optimizer—</b> The mechanism through which the network will update itself based on the data it sees and its loss function.</li>
+
+    <li class="calibre17"><b class="calibre22">Metrics to monitor during training and testing—</b> Here, we’ll only care about accuracy (the fraction of the images that were correctly classified).</li>
+  </ul>
+
+  <p class="noind">The exact purpose of the loss function and the optimizer will be made clear throughout the next two chapters.</p>
+
+  <p class="notetitle" id="ch02ex03">Listing 2.3. <a id="ch02ex03__title"></a>The compilation step</p>
+  <pre class="calibre4" id="PLd0e2606">network.compile(optimizer='rmsprop',
+                loss='categorical_crossentropy',
+                metrics=['accuracy'])</pre>
+
+  <p class="noind">Before training, we’ll preprocess the data by reshaping it into the shape the network expects and scaling it so that all values are in the <kbd class="calibre24">[0, 1]</kbd> interval. Previously, our training images, for instance, were stored in an array of shape <kbd class="calibre24">(60000, 28, 28)</kbd> of type <kbd class="calibre24">uint8</kbd> with values in the <kbd class="calibre24">[0, 255]</kbd> interval. We transform it into a <kbd class="calibre24">float32</kbd> array of shape <kbd class="calibre24">(60000, 28 * 28)</kbd> with values between 0 and 1.</p>
+
+  <p class="notetitle" id="ch02ex04">Listing 2.4. <a id="ch02ex04__title"></a>Preparing the image data</p>
+  <pre class="calibre4" id="PLd0e2636">train_images = train_images.reshape((60000, 28 * 28))
+train_images = train_images.astype('float32') / 255
+
+test_images = test_images.reshape((10000, 28 * 28))
+test_images = test_images.astype('float32') / 255</pre>
+
+  <p class="noind">We also need to categorically encode the labels, a step that’s explained in <a href="../Text/03.html#ch03">chapter 3</a>.</p>
+
+  <p class="notetitle" id="ch02ex05">Listing 2.5. <a id="ch02ex05__title"></a>Preparing the labels</p>
+  <pre class="calibre4" id="PLd0e2651">from keras.utils import to_categorical
+
+train_labels = to_categorical(train_labels)
+test_labels = to_categorical(test_labels)</pre>
+
+  <p class="noind">We’re now ready to train the network, which in Keras is done via a call to the network’s <kbd class="calibre24">fit</kbd> method—we <i class="calibre5">fit</i> the model to its training data:</p>
+  <pre class="calibre4" id="PLd0e2666">&gt;&gt;&gt; network.fit(train_images, train_labels, epochs=5, batch_size=128)
+Epoch 1/5
+60000/60000 [==============================] - 9s - loss: 0.2524 - acc: 0.9273
+Epoch 2/5
+51328/60000 [========================&gt;.....] - ETA: 1s - loss: 0.1035 - acc: 0.9692</pre>
+
+  <p class="noind">Two quantities are displayed during training: the loss of the network over the training data, and the accuracy of the network over the training data.</p>
+
+  <p class="noind">We quickly reach an accuracy of 0.989 (98.9%) on the training data. Now let’s check that the model performs well on the test set, too:</p>
+  <pre class="calibre4" id="PLd0e2679">&gt;&gt;&gt; test_loss, test_acc = network.evaluate(test_images, test_labels)
+&gt;&gt;&gt; print('test_acc:', test_acc)
+test_acc: 0.9785</pre>
+
+  <p class="noind">The test-set accuracy turns out to be 97.8%—that’s quite a bit lower than the training set accuracy. This gap between training accuracy and test accuracy is an example of <i class="calibre5">overfitting</i>: the fact that machine-learning models tend to perform worse on new data than on their training data. Overfitting is a central topic in <a href="../Text/03.html#ch03">chapter 3</a>.</p>
+
+  <p class="noind">This concludes our first example—you just saw how you can build and train a neural network to classify handwritten digits in less than 20 lines of Python code. In the next chapter, I’ll go into detail about every moving piece we just previewed and clarify what’s going on behind the scenes. You’ll learn about tensors, the data-storing objects going into the network; tensor operations, which layers are made of; and gradient descent, which allows your network to learn from its training examples.</p>
+
+  <h2 class="head" id="ch02lev1sec2"><a class="calibre3" id="ch02lev1sec2__title"></a>2.2. Data representations for neural networks</h2>
+
+  <p class="noind"><a id="iddle1003"></a><a id="iddle1006"></a><a id="iddle1007"></a><a id="iddle1162"></a><a id="iddle1170"></a><a id="iddle1171"></a><a id="iddle1175"></a><a id="iddle1239"></a><a id="iddle1240"></a><a id="iddle1591"></a><a id="iddle1662"></a><a id="iddle1676"></a><a id="iddle1684"></a><a id="iddle1685"></a><a id="iddle1689"></a><a id="iddle1727"></a><a id="iddle1729"></a><a id="iddle1814"></a><a id="iddle1866"></a><a id="iddle1867"></a><a id="iddle2053"></a>In the previous example, we started from data stored in multidimensional Numpy arrays, also called <i class="calibre5">tensors</i>. In general, all current machine-learning systems use tensors as their basic data structure. Tensors are fundamental to the field—so fundamental that Google’s TensorFlow was named after them. So what’s a tensor?</p>
+
+  <p class="noind">At its core, a tensor is a container for data—almost always numerical data. So, it’s a container for numbers. You may be already familiar with matrices, which are 2D tensors: tensors are a generalization of matrices to an arbitrary number of dimensions (note that in the context of tensors, a <i class="calibre5">dimension</i> is often called an <i class="calibre5">axis</i>).</p>
+
+  <h3 class="head1" id="ch02lev2sec1">2.2.1. <a id="ch02lev2sec1__title"></a>Scalars (0D tensors)</h3>
+
+  <p class="noind">A tensor that contains only one number is called a <i class="calibre5">scalar</i> (or scalar tensor, or 0-dimensional tensor, or 0D tensor). In Numpy, a <kbd class="calibre24">float32</kbd> or <kbd class="calibre24">float64</kbd> number is a scalar tensor (or scalar array). You can display the number of axes of a Numpy tensor via the <kbd class="calibre24">ndim</kbd> attribute; a scalar tensor has 0 axes (<kbd class="calibre24">ndim == 0</kbd>). The number of axes of a tensor is also called its <i class="calibre5">rank</i>. Here’s a Numpy scalar:</p>
+  <pre class="calibre4" id="PLd0e2902">&gt;&gt;&gt; import numpy as np
+&gt;&gt;&gt; x = np.array(12)
+&gt;&gt;&gt; x
+array(12)
+&gt;&gt;&gt; x.ndim
+0</pre>
+
+  <h3 class="head1" id="ch02lev2sec2">2.2.2. <a id="ch02lev2sec2__title"></a>Vectors (1D tensors)</h3>
+
+  <p class="noind">An array of numbers is called a <i class="calibre5">vector</i>, or 1D tensor. A 1D tensor is said to have exactly one axis. Following is a Numpy vector:</p>
+  <pre class="calibre4" id="PLd0e2920">&gt;&gt;&gt; x = np.array([12, 3, 6, 14, 7])
+&gt;&gt;&gt; x
+array([12,3,6,14,7])
+&gt;&gt;&gt; x.ndim
+1</pre>
+
+  <p class="noind">This vector has five entries and so is called a <i class="calibre5">5-dimensional vector</i>. Don’t confuse a 5D vector with a 5D tensor! A 5D vector has only one axis and has five dimensions along its axis, whereas a 5D tensor has five axes (and may have any number of dimensions along each axis). <i class="calibre5">Dimensionality</i> can denote either the number of entries along a specific axis (as in the case of our 5D vector) or the number of axes in a tensor (such as a 5D tensor), which can be confusing at times. In the latter case, it’s technically more correct to talk about <i class="calibre5">a tensor of rank 5</i> (the rank of a tensor being the number of axes), but the ambiguous notation <i class="calibre5">5D tensor</i> is common regardless.</p>
+
+  <h3 class="head1" id="ch02lev2sec3">2.2.3. <a id="ch02lev2sec3__title"></a>Matrices (2D tensors)</h3>
+
+  <p class="noind">An array of vectors is a <i class="calibre5">matrix</i>, or 2D tensor. A matrix has two axes (often referred to <i class="calibre5">rows</i> and <i class="calibre5">columns</i>). You can visually interpret a matrix as a rectangular grid of numbers. This is a Numpy matrix:</p>
+  <pre class="calibre4" id="PLd0e2961">&gt;&gt;&gt; x = np.array([[5, 78, 2, 34, 0],
+                  [6, 79, 3, 35, 1],
+                  [7, 80, 4, 36, 2]])
+&gt;&gt;&gt; x.ndim
+2</pre>
+
+  <p class="noind"><a id="iddle1163"></a><a id="iddle1166"></a><a id="iddle1168"></a><a id="iddle1253"></a><a id="iddle1677"></a><a id="iddle1680"></a><a id="iddle1682"></a><a id="iddle1946"></a><a id="iddle1947"></a>The entries from the first axis are called the <i class="calibre5">rows</i>, and the entries from the second axis are called the <i class="calibre5">columns</i>. In the previous example, <kbd class="calibre24">[5, 78, 2, 34, 0]</kbd> is the first row of <kbd class="calibre24">x</kbd>, and <kbd class="calibre24">[5, 6, 7]</kbd> is the first column.</p>
+
+  <h3 class="head1" id="ch02lev2sec4">2.2.4. <a id="ch02lev2sec4__title"></a>3D tensors and higher-dimensional tensors</h3>
+
+  <p class="noind">If you pack such matrices in a new array, you obtain a 3D tensor, which you can visually interpret as a cube of numbers. Following is a Numpy 3D tensor:</p>
+  <pre class="calibre4" id="PLd0e3081">&gt;&gt;&gt; x = np.array([[[5, 78, 2, 34, 0],
+                   [6, 79, 3, 35, 1],
+                   [7, 80, 4, 36, 2]],
+                  [[5, 78, 2, 34, 0],
+                   [6, 79, 3, 35, 1],
+                   [7, 80, 4, 36, 2]],
+                  [[5, 78, 2, 34, 0],
+                   [6, 79, 3, 35, 1],
+                   [7, 80, 4, 36, 2]]])
+&gt;&gt;&gt; x.ndim
+3</pre>
+
+  <p class="noind">By packing 3D tensors in an array, you can create a 4D tensor, and so on. In deep learning, you’ll generally manipulate tensors that are 0D to 4D, although you may go up to 5D if you process video data.</p>
+
+  <h3 class="head1" id="ch02lev2sec5">2.2.5. <a id="ch02lev2sec5__title"></a>Key attributes</h3>
+
+  <p class="noind">A tensor is defined by three key attributes:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><b class="calibre22">Number of axes (rank)—</b> For instance, a 3D tensor has three axes, and a matrix has two axes. This is also called the tensor’s <kbd class="calibre24">ndim</kbd> in Python libraries such as Numpy.</li>
+
+    <li class="calibre17"><b class="calibre22">Shape—</b> This is a tuple of integers that describes how many dimensions the tensor has along each axis. For instance, the previous matrix example has shape <kbd class="calibre24">(3, 5)</kbd>, and the 3D tensor example has shape <kbd class="calibre24">(3, 3, 5)</kbd>. A vector has a shape with a single element, such as <kbd class="calibre24">(5,)</kbd>, whereas a scalar has an empty shape, <kbd class="calibre24">()</kbd>.</li>
+
+    <li class="calibre17"><i class="calibre5">Data type</i> (usually called <kbd class="calibre24">dtype</kbd> in Python libraries)—This is the type of the data contained in the tensor; for instance, a tensor’s type could be <kbd class="calibre24">float32</kbd>, <kbd class="calibre24">uint8</kbd>, <kbd class="calibre24">float64</kbd>, and so on. On rare occasions, you may see a <kbd class="calibre24">char</kbd> tensor. Note that string tensors don’t exist in Numpy (or in most other libraries), because tensors live in preallocated, contiguous memory segments: and strings, being variable length, would preclude the use of this implementation.</li>
+  </ul>
+
+  <p class="noind"><a id="iddle1588"></a>To make this more concrete, let’s look back at the data we processed in the MNIST example. First, we load the MNIST dataset:</p>
+  <pre class="calibre4" id="PLd0e3166">from keras.datasets import mnist
+(train_images, train_labels), (test_images, test_labels) = mnist.load_data()</pre>
+
+  <p class="noind">Next, we display the number of axes of the tensor <kbd class="calibre24">train_images</kbd>, the <kbd class="calibre24">ndim</kbd> attribute:</p>
+  <pre class="calibre4" id="PLd0e3181">&gt;&gt;&gt; print(train_images.ndim)
+3</pre>
+
+  <p class="noind">Here’s its shape:</p>
+  <pre class="calibre4" id="PLd0e3190">&gt;&gt;&gt; print(train_images.shape)
+(60000, 28, 28)</pre>
+
+  <p class="noind">And this is its data type, the <kbd class="calibre24">dtype</kbd> attribute:</p>
+  <pre class="calibre4" id="PLd0e3202">&gt;&gt;&gt; print(train_images.dtype)
+uint8</pre>
+
+  <p class="noind">So what we have here is a 3D tensor of 8-bit integers. More precisely, it’s an array of 60,000 matrices of 28 × 28 integers. Each such matrix is a grayscale image, with coefficients between 0 and 255.</p>
+
+  <p class="noind">Let’s display the fourth digit in this 3D tensor, using the library Matplotlib (part of the standard scientific Python suite); see <a href="#ch02fig02">figure 2.2</a>.</p>
+
+  <p class="notetitle" id="ch02fig02">Figure 2.2. <a id="ch02fig02__title"></a>The fourth sample in our dataset</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig02.jpg"/></p>
+
+  <p class="notetitle" id="ch02ex06">Listing 2.6. <a id="ch02ex06__title"></a>Displaying the fourth digit</p>
+  <pre class="calibre4" id="PLd0e3233">digit = train_images[4]
+
+import matplotlib.pyplot as plt
+plt.imshow(digit, cmap=plt.cm.binary)
+plt.show()</pre>
+
+  <h3 class="head1" id="ch02lev2sec6">2.2.6. <a id="ch02lev2sec6__title"></a>Manipulating tensors in Numpy</h3>
+
+  <p class="noind"><a id="iddle1150"></a><a id="iddle1164"></a><a id="iddle1169"></a><a id="iddle1678"></a><a id="iddle1683"></a><a id="iddle1728"></a><a id="iddle1858"></a><a id="iddle1859"></a><a id="iddle1948"></a><a id="iddle1957"></a>In the previous example, we <i class="calibre5">selected</i> a specific digit alongside the first axis using the syntax <kbd class="calibre24">train_images[i]</kbd>. Selecting specific elements in a tensor is called <i class="calibre5">tensor slicing</i>. Let’s look at the tensor-slicing operations you can do on Numpy arrays.</p>
+
+  <p class="noind">The following example selects digits #10 to #100 (#100 isn’t included) and puts them in an array of shape <kbd class="calibre24">(90, 28, 28)</kbd>:</p>
+  <pre class="calibre4" id="PLd0e3351">&gt;&gt;&gt; my_slice = train_images[10:100]
+&gt;&gt;&gt; print(my_slice.shape)
+(90, 28, 28)</pre>
+
+  <p class="noind">It’s equivalent to this more detailed notation, which specifies a start index and stop index for the slice along each tensor axis. Note that <kbd class="calibre24">:</kbd> is equivalent to selecting the entire axis:</p>
+  <pre class="calibre4" id="PLd0e3363">&gt;&gt;&gt; my_slice = train_images[10:100, :, :]                  <span class="cambriamathin">❶</span>
+&gt;&gt;&gt; my_slice.shape
+(90, 28, 28)
+&gt;&gt;&gt; my_slice = train_images[10:100, 0:28, 0:28]            <span class="cambriamathin">❷</span>
+&gt;&gt;&gt; my_slice.shape
+(90, 28, 28)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Equivalent to the previous example</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Also equivalent to the previous example</p>
+  </div>
+
+  <p class="noind">In general, you may select between any two indices along each tensor axis. For instance, in order to select 14 × 14 pixels in the bottom-right corner of all images, you do this:</p>
+  <pre class="calibre4" id="PLd0e3399">my_slice = train_images[:, 14:, 14:]</pre>
+
+  <p class="noind">It’s also possible to use negative indices. Much like negative indices in Python lists, they indicate a position relative to the end of the current axis. In order to crop the images to patches of 14 × 14 pixels centered in the middle, you do this:</p>
+  <pre class="calibre4" id="PLd0e3408">my_slice = train_images[:, 7:-7, 7:-7]</pre>
+
+  <h3 class="head1" id="ch02lev2sec7">2.2.7. <a id="ch02lev2sec7__title"></a>The notion of data batches</h3>
+
+  <p class="noind">In general, the first axis (axis 0, because indexing starts at 0) in all data tensors you’ll come across in deep learning will be the <i class="calibre5">samples axis</i> (sometimes called the <i class="calibre5">samples dimension</i>). In the MNIST example, samples are images of digits.</p>
+
+  <p class="noind">In addition, deep-learning models don’t process an entire dataset at once; rather, they break the data into small batches. Concretely, here’s one batch of our MNIST digits, with batch size of 128:</p>
+  <pre class="calibre4" id="PLd0e3432">batch = train_images[:128]</pre>
+
+  <p class="noind">And here’s the next batch:</p>
+  <pre class="calibre4" id="PLd0e3441">batch = train_images[128:256]</pre>
+
+  <p class="noind"><a id="iddle1061"></a><a id="iddle1165"></a><a id="iddle1172"></a><a id="iddle1173"></a><a id="iddle1174"></a><a id="iddle1189"></a><a id="iddle1282"></a><a id="iddle1679"></a><a id="iddle1686"></a><a id="iddle1687"></a><a id="iddle1688"></a><a id="iddle1879"></a><a id="iddle1984"></a><a id="iddle2046"></a>And the <i class="calibre5"><kbd class="calibre24">n</kbd></i>th batch:</p>
+  <pre class="calibre4" id="PLd0e3576">batch = train_images[128 * n:128 * (n + 1)]</pre>
+
+  <p class="noind">When considering such a batch tensor, the first axis (axis 0) is called the <i class="calibre5">batch axis</i> or <i class="calibre5">batch dimension</i>. This is a term you’ll frequently encounter when using Keras and other deep-learning libraries.</p>
+
+  <h3 class="head1" id="ch02lev2sec8">2.2.8. <a id="ch02lev2sec8__title"></a>Real-world examples of data tensors</h3>
+
+  <p class="noind">Let’s make data tensors more concrete with a few examples similar to what you’ll encounter later. The data you’ll manipulate will almost always fall into one of the following categories:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><b class="calibre22">Vector data—</b> 2D tensors of shape <kbd class="calibre24">(samples, features)</kbd></li>
+
+    <li class="calibre17"><b class="calibre22">Timeseries data or sequence data—</b> 3D tensors of shape <kbd class="calibre24">(samples, timesteps, features)</kbd></li>
+
+    <li class="calibre17"><b class="calibre22">Images—</b> 4D tensors of shape <kbd class="calibre24">(samples, height, width, channels)</kbd> or <kbd class="calibre24">(samples, channels, height, width)</kbd></li>
+
+    <li class="calibre17"><b class="calibre22">Video—</b> 5D tensors of shape <kbd class="calibre24">(samples, frames, height, width, channels)</kbd> or <kbd class="calibre24">(samples, frames, channels, height, width)</kbd></li>
+  </ul>
+
+  <h3 class="head1" id="ch02lev2sec9">2.2.9. <a id="ch02lev2sec9__title"></a>Vector data</h3>
+
+  <p class="noind">This is the most common case. In such a dataset, each single data point can be encoded as a vector, and thus a batch of data will be encoded as a 2D tensor (that is, an array of vectors), where the first axis is the <i class="calibre5">samples axis</i> and the second axis is the <i class="calibre5">features axis</i>.</p>
+
+  <p class="noind">Let’s take a look at two examples:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">An actuarial dataset of people, where we consider each person’s age, ZIP code, and income. Each person can be characterized as a vector of 3 values, and thus an entire dataset of 100,000 people can be stored in a 2D tensor of shape <kbd class="calibre24">(100000, 3)</kbd>.</li>
+
+    <li class="calibre17">A dataset of text documents, where we represent each document by the counts of how many times each word appears in it (out of a dictionary of 20,000 common words). Each document can be encoded as a vector of 20,000 values (one count per word in the dictionary), and thus an entire dataset of 500 documents can be stored in a tensor of shape <kbd class="calibre24">(500, 20000)</kbd>.</li>
+  </ul>
+
+  <h3 class="head1" id="ch02lev2sec10">2.2.10. <a id="ch02lev2sec10__title"></a>Timeseries data or sequence data</h3>
+
+  <p class="noind">Whenever time matters in your data (or the notion of sequence order), it makes sense to store it in a 3D tensor with an explicit time axis. Each sample can be encoded as a sequence of vectors (a 2D tensor), and thus a batch of data will be encoded as a 3D tensor (see <a href="#ch02fig03">figure 2.3</a>).</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch02fig03">Figure 2.3. <a id="ch02fig03__title"></a>A 3D timeseries data tensor</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig03.jpg"/></p>
+
+  <p class="noind"><a id="iddle1087"></a><a id="iddle1088"></a><a id="iddle1167"></a><a id="iddle1400"></a><a id="iddle1681"></a>The time axis is always the second axis (axis of index 1), by convention. Let’s look at a few examples:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">A dataset of stock prices. Every minute, we store the current price of the stock, the highest price in the past minute, and the lowest price in the past minute. Thus every minute is encoded as a 3D vector, an entire day of trading is encoded as a 2D tensor of shape <kbd class="calibre24">(390, 3)</kbd> (there are 390 minutes in a trading day), and 250 days’ worth of data can be stored in a 3D tensor of shape <kbd class="calibre24">(250, 390, 3)</kbd>. Here, each sample would be one day’s worth of data.</li>
+
+    <li class="calibre17">A dataset of tweets, where we encode each tweet as a sequence of 280 characters out of an alphabet of 128 unique characters. In this setting, each character can be encoded as a binary vector of size 128 (an all-zeros vector except for a 1 entry at the index corresponding to the character). Then each tweet can be encoded as a 2D tensor of shape <kbd class="calibre24">(280, 128)</kbd>, and a dataset of 1 million tweets can be stored in a tensor of shape <kbd class="calibre24">(1000000, 280, 128)</kbd>.</li>
+  </ul>
+
+  <h3 class="head1" id="ch02lev2sec11">2.2.11. <a id="ch02lev2sec11__title"></a>Image data</h3>
+
+  <p class="noind">Images typically have three dimensions: height, width, and color depth. Although grayscale images (like our MNIST digits) have only a single color channel and could thus be stored in 2D tensors, by convention image tensors are always 3D, with a one-dimensional color channel for grayscale images. A batch of 128 grayscale images of size 256 × 256 could thus be stored in a tensor of shape <kbd class="calibre24">(128, 256, 256, 1)</kbd>, and a batch of 128 color images could be stored in a tensor of shape <kbd class="calibre24">(128, 256, 256, 3)</kbd> (see <a href="#ch02fig04">figure 2.4</a>).</p>
+
+  <p class="notetitle" id="ch02fig04">Figure 2.4. <a id="ch02fig04__title"></a>A 4D image data tensor (channels-first convention)</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig04.jpg"/></p>
+
+  <p class="noind"><a id="iddle1176"></a><a id="iddle1690"></a><a id="iddle2056"></a>There are two conventions for shapes of images tensors: the <i class="calibre5">channels-last</i> convention (used by TensorFlow) and the <i class="calibre5">channels-first</i> convention (used by Theano). The TensorFlow machine-learning framework, from Google, places the color-depth axis at the end: <kbd class="calibre24">(samples, height, width, color_depth)</kbd>. Meanwhile, Theano places the color depth axis right after the batch axis: <kbd class="calibre24">(samples, color_depth, height, width)</kbd>. With the Theano convention, the previous examples would become <kbd class="calibre24">(128, 1, 256, 256)</kbd> and <kbd class="calibre24">(128, 3, 256, 256)</kbd>. The Keras framework provides support for both formats.</p>
+
+  <h3 class="head1" id="ch02lev2sec12">2.2.12. <a id="ch02lev2sec12__title"></a>Video data</h3>
+
+  <p class="noind">Video data is one of the few types of real-world data for which you’ll need 5D tensors. A video can be understood as a sequence of frames, each frame being a color image. Because each frame can be stored in a 3D tensor <kbd class="calibre24">(height, width, color_depth)</kbd>, a sequence of frames can be stored in a 4D tensor <kbd class="calibre24">(frames, height, width, color_depth)</kbd>, and thus a batch of different videos can be stored in a 5D tensor of shape <kbd class="calibre24">(-samples, frames, height, width, color_depth)</kbd>.</p>
+
+  <p class="noind">For instance, a 60-second, 144 × 256 YouTube video clip sampled at 4 frames per second would have 240 frames. A batch of four such video clips would be stored in a tensor of shape <kbd class="calibre24">(4, 240, 144, 256, 3)</kbd>. That’s a total of 106,168,320 values! If the <kbd class="calibre24">dtype</kbd> of the tensor was <kbd class="calibre24">float32</kbd>, then each value would be stored in 32 bits, so the tensor would represent 405 MB. Heavy! Videos you encounter in real life are much lighter, because they aren’t stored in <kbd class="calibre24">float32</kbd>, and they’re typically compressed by a large factor (such as in the MPEG format).</p>
+
+  <h2 class="head" id="ch02lev1sec3"><a class="calibre3" id="ch02lev1sec3__title"></a>2.3. The gears of neural networks: tensor operations</h2>
+
+  <p class="noind"><a id="iddle1226"></a><a id="iddle1249"></a><a id="iddle1258"></a><a id="iddle1298"></a><a id="iddle1708"></a><a id="iddle1711"></a><a id="iddle1949"></a><a id="iddle1952"></a><a id="iddle2051"></a>Much as any computer program can be ultimately reduced to a small set of binary operations on binary inputs (AND, OR, NOR, and so on), all transformations learned by deep neural networks can be reduced to a handful of <i class="calibre5">tensor operations</i> applied to tensors of numeric data. For instance, it’s possible to add tensors, multiply tensors, and so on.</p>
+
+  <p class="noind">In our initial example, we were building our network by stacking <kbd class="calibre24">Dense</kbd> layers on top of each other. A Keras layer instance looks like this:</p>
+  <pre class="calibre4" id="PLd0e3979">keras.layers.Dense(512, activation='relu')</pre>
+
+  <p class="noind">This layer can be interpreted as a function, which takes as input a 2D tensor and returns another 2D tensor—a new representation for the input tensor. Specifically, the function is as follows (where <kbd class="calibre24">W</kbd> is a 2D tensor and <kbd class="calibre24">b</kbd> is a vector, both attributes of the layer):</p>
+  <pre class="calibre4" id="PLd0e3994">output = relu(dot(W, input) + b)</pre>
+
+  <p class="noind">Let’s unpack this. We have three tensor operations here: a dot product (<kbd class="calibre24">dot</kbd>) between the input tensor and a tensor named <kbd class="calibre24">W</kbd>; an addition (<kbd class="calibre24">+</kbd>) between the resulting 2D tensor and a vector <kbd class="calibre24">b</kbd>; and, finally, a <kbd class="calibre24">relu</kbd> operation. <kbd class="calibre24">relu(x)</kbd> is <kbd class="calibre24">max(x, 0)</kbd>.</p>
+  <hr class="calibre25"/>
+
+  <p class="notetitle" id="ch02note01">Note</p>
+
+  <p class="noindclose">Although this section deals entirely with linear algebra expressions, you won’t find any mathematical notation here. I’ve found that mathematical concepts can be more readily mastered by programmers with no mathematical background if they’re expressed as short Python snippets instead of mathematical equations. So we’ll use Numpy code throughout.</p>
+  <hr class="calibre25"/>
+
+  <h3 class="head1" id="ch02lev2sec13">2.3.1. <a id="ch02lev2sec13__title"></a>Element-wise operations</h3>
+
+  <p class="noind">The <kbd class="calibre24">relu</kbd> operation and addition are <i class="calibre5">element-wise</i> operations: operations that are applied independently to each entry in the tensors being considered. This means these operations are highly amenable to massively parallel implementations (<i class="calibre5">vectorized</i> implementations, a term that comes from the <i class="calibre5">vector processor</i> supercomputer architecture from the 1970–1990 period). If you want to write a naive Python implementation of an element-wise operation, you use a <kbd class="calibre24">for</kbd> loop, as in this naive implementation of an element-wise <kbd class="calibre24">relu</kbd> operation:</p>
+  <pre class="calibre4" id="PLd0e4058">def naive_relu(x):
+    assert len(x.shape) == 2                <span class="cambriamathin">❶</span>
+
+    x = x.copy()                            <span class="cambriamathin">❷</span>
+    for i in range(x.shape[0]):
+        for j in range(x.shape[1]):
+            x[i, j] = max(x[i, j], 0)
+    return x</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> x is a 2D Numpy tensor.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Avoid overwriting the input tensor.</p>
+  </div>
+
+  <p class="noind"><a id="iddle1074"></a><a id="iddle1077"></a><a id="iddle1660"></a><a id="iddle1709"></a><a id="iddle1950"></a>You do the same for addition:</p>
+  <pre class="calibre4" id="PLd0e4132">def naive_add(x, y):
+    assert len(x.shape) == 2             <span class="cambriamathin">❶</span>
+    assert x.shape == y.shape
+
+    x = x.copy()                         <span class="cambriamathin">❷</span>
+    for i in range(x.shape[0]):
+        for j in range(x.shape[1]):
+            x[i, j] += y[i, j]
+    return x</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> x and y are 2D Numpy tensors.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Avoid overwriting the input tensor.</p>
+  </div>
+
+  <p class="noind">On the same principle, you can do element-wise multiplication, subtraction, and so on.</p>
+
+  <p class="noind">In practice, when dealing with Numpy arrays, these operations are available as well-optimized built-in Numpy functions, which themselves delegate the heavy lifting to a Basic Linear Algebra Subprograms (BLAS) implementation if you have one installed (which you should). BLAS are low-level, highly parallel, efficient tensor-manipulation routines that are typically implemented in Fortran or C.</p>
+
+  <p class="noind">So, in Numpy, you can do the following element-wise operation, and it will be blazing fast:</p>
+  <pre class="calibre4" id="PLd0e4174">import numpy as np
+
+z = x + y                   <span class="cambriamathin">❶</span>
+
+z = np.maximum(z, 0.)       <span class="cambriamathin">❷</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Element-wise addition</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Element-wise relu</p>
+  </div>
+
+  <h3 class="head1" id="ch02lev2sec14">2.3.2. <a id="ch02lev2sec14__title"></a>Broadcasting</h3>
+
+  <p class="noind">Our earlier naive implementation of <kbd class="calibre24">naive_add</kbd> only supports the addition of 2D tensors with identical shapes. But in the <kbd class="calibre24">Dense</kbd> layer introduced earlier, we added a 2D tensor with a vector. What happens with addition when the shapes of the two tensors being added differ?</p>
+
+  <p class="noind">When possible, and if there’s no ambiguity, the smaller tensor will be <i class="calibre5">broadcasted</i> to match the shape of the larger tensor. Broadcasting consists of two steps:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Axes (called <i class="calibre5">broadcast axes</i>) are added to the smaller tensor to match the <kbd class="calibre24">ndim</kbd> of the larger tensor.</li>
+
+    <li class="calibre17">The smaller tensor is repeated alongside these new axes to match the full shape of the larger tensor.</li>
+  </ol>
+
+  <p class="noind">Let’s look at a concrete example. Consider <kbd class="calibre24">X</kbd> with shape <kbd class="calibre24">(32, 10)</kbd> and <kbd class="calibre24">y</kbd> with shape <kbd class="calibre24">(10,)</kbd>. First, we add an empty first axis to <kbd class="calibre24">y</kbd>, whose shape becomes <kbd class="calibre24">(1, 10)</kbd>. Then, we repeat <kbd class="calibre24">y</kbd> 32 times alongside this new axis, so that we end up with a tensor <kbd class="calibre24">Y</kbd> with shape <a id="iddle1001"></a><a id="iddle1248"></a><a id="iddle1592"></a><a id="iddle1710"></a><a id="iddle1951"></a><kbd class="calibre24">(32, 10)</kbd>, where <kbd class="calibre24">Y[i, :] == y</kbd> for <kbd class="calibre24">i</kbd> in <kbd class="calibre24">range(0, 32)</kbd>. At this point, we can proceed to add <kbd class="calibre24">X</kbd> and <kbd class="calibre24">Y</kbd>, because they have the same shape.</p>
+
+  <p class="noind">In terms of implementation, no new 2D tensor is created, because that would be terribly inefficient. The repetition operation is entirely virtual: it happens at the algorithmic level rather than at the memory level. But thinking of the vector being repeated 10 times alongside a new axis is a helpful mental model. Here’s what a naive implementation would look like:</p>
+  <pre class="calibre4" id="PLd0e4332">def naive_add_matrix_and_vector(x, y):
+    assert len(x.shape) == 2                 <span class="cambriamathin">❶</span>
+    assert len(y.shape) == 1                 <span class="cambriamathin">❷</span>
+    assert x.shape[1] == y.shape[0]
+
+    x = x.copy()                             <span class="cambriamathin">❸</span>
+    for i in range(x.shape[0]):
+        for j in range(x.shape[1]):
+            x[i, j] += y[j]
+    return x</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> x is a 2D Numpy tensor.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> y is a Numpy vector.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Avoid overwriting the input tensor.</p>
+  </div>
+
+  <p class="noind">With broadcasting, you can generally apply two-tensor element-wise operations if one tensor has shape <kbd class="calibre24">(a, b, ... n, n + 1, ... m)</kbd> and the other has shape <kbd class="calibre24">(n, n + 1, ... m)</kbd>. The broadcasting will then automatically happen for axes <kbd class="calibre24">a</kbd> through <kbd class="calibre24">n - 1</kbd>.</p>
+
+  <p class="noind">The following example applies the element-wise <kbd class="calibre24">maximum</kbd> operation to two tensors of different shapes via broadcasting:</p>
+  <pre class="calibre4" id="PLd0e4398">import numpy as np
+
+x = np.random.random((64, 3, 32, 10))        <span class="cambriamathin">❶</span>
+y = np.random.random((32, 10))               <span class="cambriamathin">❷</span>
+
+z = np.maximum(x, y)                         <span class="cambriamathin">❸</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> x is a random tensor with shape (64, 3, 32, 10).</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> y is a random tensor with shape (32, 10).</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> The output z has shape (64, 3, 32, 10) like x.</p>
+  </div>
+
+  <h3 class="head1" id="ch02lev2sec15">2.3.3. <a id="ch02lev2sec15__title"></a>Tensor dot</h3>
+
+  <p class="noind">The dot operation, also called a <i class="calibre5">tensor product</i> (not to be confused with an element-wise product) is the most common, most useful tensor operation. Contrary to element-wise operations, it combines entries in the input tensors.</p>
+
+  <p class="noind">An element-wise product is done with the <kbd class="calibre24">*</kbd> operator in Numpy, Keras, Theano, and TensorFlow. <kbd class="calibre24">dot</kbd> uses a different syntax in TensorFlow, but in both Numpy and Keras it’s done using the standard <kbd class="calibre24">dot</kbd> operator:</p>
+  <pre class="calibre4" id="PLd0e4466">import numpy as np
+z = np.dot(x, y)</pre>
+
+  <p class="noind">In mathematical notation, you’d note the operation with a dot (<kbd class="calibre24">.</kbd>):</p>
+  <pre class="calibre4" id="PLd0e4479">z = x . y</pre>
+
+  <p class="noind">Mathematically, what does the dot operation do? Let’s start with the dot product of two vectors <kbd class="calibre24">x</kbd> and <kbd class="calibre24">y</kbd>. It’s computed as follows:</p>
+  <pre class="calibre4" id="PLd0e4494">def naive_vector_dot(x, y):
+    assert len(x.shape) == 1              <span class="cambriamathin">❶</span>
+    assert len(y.shape) == 1              <span class="cambriamathin">❶</span>
+    assert x.shape[0] == y.shape[0]
+
+    z = 0.
+    for i in range(x.shape[0]):
+        z += x[i] * y[i]
+    return z</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> x and y are Numpy vectors.</p>
+  </div>
+
+  <p class="noind">You’ll have noticed that the dot product between two vectors is a scalar and that only vectors with the same number of elements are compatible for a dot product.</p>
+
+  <p class="noind">You can also take the dot product between a matrix <kbd class="calibre24">x</kbd> and a vector <kbd class="calibre24">y</kbd>, which returns a vector where the coefficients are the dot products between <kbd class="calibre24">y</kbd> and the rows of <kbd class="calibre24">x</kbd>. You implement it as follows:</p>
+  <pre class="calibre4" id="PLd0e4537">import numpy as np
+
+def naive_matrix_vector_dot(x, y):
+    assert len(x.shape) == 2                  <span class="cambriamathin">❶</span>
+    assert len(y.shape) == 1                  <span class="cambriamathin">❷</span>
+    assert x.shape[1] == y.shape[0]           <span class="cambriamathin">❸</span>
+
+    z = np.zeros(x.shape[0])                  <span class="cambriamathin">❹</span>
+    for i in range(x.shape[0]):
+        for j in range(x.shape[1]):
+            z[i] += x[i, j] * y[j]
+    return z</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> x is a Numpy matrix.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> y is a Numpy vector.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> The first dimension of x must be the same as the 0th dimension of y!</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> This operation returns a vector of 0s with the same shape as y.</p>
+  </div>
+
+  <p class="noind">You could also reuse the code we wrote previously, which highlights the relationship between a matrix-vector product and a vector product:</p>
+  <pre class="calibre4" id="PLd0e4597">def naive_matrix_vector_dot(x, y):
+    z = np.zeros(x.shape[0])
+    for i in range(x.shape[0]):
+        z[i] = naive_vector_dot(x[i, :], y)
+    return z</pre>
+
+  <p class="noind">Note that as soon as one of the two tensors has an <kbd class="calibre24">ndim</kbd> greater than 1, <kbd class="calibre24">dot</kbd> is no longer symmetric, which is to say that <kbd class="calibre24">dot(x, y)</kbd> isn’t the same as <kbd class="calibre24">dot(y, x)</kbd>.</p>
+
+  <p class="noind"><a id="iddle1714"></a><a id="iddle1843"></a><a id="iddle1955"></a><a id="iddle1956"></a>Of course, a dot product generalizes to tensors with an arbitrary number of axes. The most common applications may be the dot product between two matrices. You can take the dot product of two matrices <kbd class="calibre24">x</kbd> and <kbd class="calibre24">y</kbd> (<kbd class="calibre24">dot(x, y)</kbd>) if and only if <kbd class="calibre24">x.shape[1] == y.shape[0]</kbd>. The result is a matrix with shape <kbd class="calibre24">(x.shape[0], y.shape[1])</kbd>, where the coefficients are the vector products between the rows of <kbd class="calibre24">x</kbd> and the columns of <kbd class="calibre24">y</kbd>. Here’s the naive implementation:</p>
+  <pre class="calibre4" id="PLd0e4678">def naive_matrix_dot(x, y):
+    assert len(x.shape) == 2                    <span class="cambriamathin">❶</span>
+    assert len(y.shape) == 2                    <span class="cambriamathin">❶</span>
+    assert x.shape[1] == y.shape[0]             <span class="cambriamathin">❷</span>
+
+    z = np.zeros((x.shape[0], y.shape[1]))      <span class="cambriamathin">❸</span>
+    for i in range(x.shape[0]):                 <span class="cambriamathin">❹</span>
+        for j in range(y.shape[1]):             <span class="cambriamathin">❺</span>
+            row_x = x[i, :]
+            column_y = y[:, j]
+            z[i, j] = naive_vector_dot(row_x, column_y)
+    return z</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> x and y are Numpy matrices.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> The first dimension of x must be the same as the 0th dimension of y!</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> This operation returns a matrix of 0s with a specific shape.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Iterates over the rows of x ...</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> ... and over the columns of y.</p>
+  </div>
+
+  <p class="noind">To understand dot-product shape compatibility, it helps to visualize the input and output tensors by aligning them as shown in <a href="#ch02fig05">figure 2.5</a>.</p>
+
+  <p class="notetitle" id="ch02fig05">Figure 2.5. <a id="ch02fig05__title"></a>Matrix dot-product box diagram</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig05.jpg"/></p>
+
+  <p class="noind"><kbd class="calibre24">x</kbd>, <kbd class="calibre24">y</kbd>, and <kbd class="calibre24">z</kbd> are pictured as rectangles (literal boxes of coefficients). Because the rows of <kbd class="calibre24">x</kbd> and the columns of <kbd class="calibre24">y</kbd> must have the same size, it follows that the width of <kbd class="calibre24">x</kbd> must <a id="iddle1342"></a><a id="iddle1712"></a><a id="iddle1953"></a><a id="iddle2012"></a>match the height of <kbd class="calibre24">y</kbd>. If you go on to develop new machine-learning algorithms, you’ll likely be drawing such diagrams often.</p>
+
+  <p class="noind">More generally, you can take the dot product between higher-dimensional tensors, following the same rules for shape compatibility as outlined earlier for the 2D case:</p>
+  <pre class="calibre4" id="PLd0e4833">(a, b, c, d) . (d,) -&gt; (a, b, c)
+(a, b, c, d) . (d, e) -&gt; (a, b, c, e)</pre>
+
+  <p class="noind">And so on.</p>
+
+  <h3 class="head1" id="ch02lev2sec16">2.3.4. <a id="ch02lev2sec16__title"></a>Tensor reshaping</h3>
+
+  <p class="noind">A third type of tensor operation that’s essential to understand is <i class="calibre5">tensor reshaping</i>. Although it wasn’t used in the <kbd class="calibre24">Dense</kbd> layers in our first neural network example, we used it when we preprocessed the digits data before feeding it into our network:</p>
+  <pre class="calibre4" id="PLd0e4857">train_images = train_images.reshape((60000, 28 * 28))</pre>
+
+  <p class="noind">Reshaping a tensor means rearranging its rows and columns to match a target shape. Naturally, the reshaped tensor has the same total number of coefficients as the initial tensor. Reshaping is best understood via simple examples:</p>
+  <pre class="calibre4" id="PLd0e4866">&gt;&gt;&gt; x = np.array([[0., 1.],
+                 [2., 3.],
+                 [4., 5.]])
+&gt;&gt;&gt; print(x.shape)
+(3, 2)
+
+&gt;&gt;&gt; x = x.reshape((6, 1))
+&gt;&gt;&gt; x
+array([[ 0.],
+       [ 1.],
+       [ 2.],
+       [ 3.],
+       [ 4.],
+       [ 5.]])
+
+ &gt;&gt;&gt; x = x.reshape((2, 3))
+ &gt;&gt;&gt; x
+ array([[ 0.,  1.,  2.],
+        [ 3.,  4.,  5.]])</pre>
+
+  <p class="noind">A special case of reshaping that’s commonly encountered is <i class="calibre5">transposition</i>. <i class="calibre5">Transposing</i> a matrix means exchanging its rows and its columns, so that <kbd class="calibre24">x[i, :]</kbd> becomes <kbd class="calibre24">x[:, i]</kbd>:</p>
+  <pre class="calibre4" id="PLd0e4887">&gt;&gt;&gt; x = np.zeros((300, 20))         <span class="cambriamathin">❶</span>
+&gt;&gt;&gt; x = np.transpose(x)
+&gt;&gt;&gt; print(x.shape)
+(20, 300)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Creates an all-zeros matrix of shape (300, 20)</p>
+  </div>
+
+  <h3 class="head1" id="ch02lev2sec17">2.3.5. <a id="ch02lev2sec17__title"></a>Geometric interpretation of tensor operations</h3>
+
+  <p class="noind"><a id="iddle1209"></a><a id="iddle1341"></a><a id="iddle1713"></a><a id="iddle1954"></a>Because the contents of the tensors manipulated by tensor operations can be interpreted as coordinates of points in some geometric space, all tensor operations have a geometric interpretation. For instance, let’s consider addition. We’ll start with the following vector:</p>
+  <pre class="calibre4" id="PLd0e4957">A = [0.5, 1]</pre>
+
+  <p class="noind">It’s a point in a 2D space (see <a href="#ch02fig06">figure 2.6</a>). It’s common to picture a vector as an arrow linking the origin to the point, as shown in <a href="#ch02fig07">figure 2.7</a>.</p>
+
+  <p class="notetitle" id="ch02fig06">Figure 2.6. <a id="ch02fig06__title"></a>A point in a 2D space</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig06.jpg"/></p>
+
+  <p class="notetitle" id="ch02fig07">Figure 2.7. <a id="ch02fig07__title"></a>A point in a 2D space pictured as an arrow</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig07.jpg"/></p>
+
+  <p class="noind">Let’s consider a new point, <kbd class="calibre24">B = [1, 0.25]</kbd>, which we’ll add to the previous one. This is done geometrically by chaining together the vector arrows, with the resulting location being the vector representing the sum of the previous two vectors (see <a href="#ch02fig08">figure 2.8</a>).</p>
+
+  <p class="notetitle" id="ch02fig08">Figure 2.8. <a id="ch02fig08__title"></a>Geometric interpretation of the sum of two vectors</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig08.jpg"/></p>
+
+  <p class="noind">In general, elementary geometric operations such as affine transformations, rotations, scaling, and so on can be expressed as tensor operations. For instance, a rotation of a 2D vector by an angle theta can be achieved via a dot product with a 2 × 2 matrix <kbd class="calibre24">R = [u, v]</kbd>, where <kbd class="calibre24">u</kbd> and <kbd class="calibre24">v</kbd> are both vectors of the plane: <kbd class="calibre24">u = [cos(theta), sin(theta)]</kbd> and <kbd class="calibre24">v = [-sin(theta), cos(theta)]</kbd>.</p>
+
+  <h3 class="head1" id="ch02lev2sec18">2.3.6. <a id="ch02lev2sec18__title"></a>A geometric interpretation of deep learning</h3>
+
+  <p class="noind">You just learned that neural networks consist entirely of chains of tensor operations and that all of these tensor operations are just geometric transformations of the input data. It follows that you can interpret a neural network as a very complex geometric transformation in a high-dimensional space, implemented via a long series of simple steps.</p>
+
+  <p class="noind">In 3D, the following mental image may prove useful. Imagine two sheets of colored paper: one red and one blue. Put one on top of the other. Now crumple them together into a small ball. That crumpled paper ball is your input data, and each sheet of paper is a class of data in a classification problem. What a neural network (or any other machine-learning model) is meant to do is figure out a transformation of the paper ball that would uncrumple it, so as to make the two classes cleanly separable again. With deep learning, this would be implemented as a series of simple transformations of the 3D space, such as those you could apply on the paper ball with your fingers, one movement at a time.</p>
+
+  <p class="notetitle" id="ch02fig09">Figure 2.9. <a id="ch02fig09__title"></a>Uncrumpling a complicated manifold of data</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig09.jpg"/></p>
+
+  <p class="noind">Uncrumpling paper balls is what machine learning is about: finding neat representations for complex, highly folded data manifolds. At this point, you should have a pretty good intuition as to why deep learning excels at this: it takes the approach of incrementally decomposing a complicated geometric transformation into a long chain of elementary ones, which is pretty much the strategy a human would follow to uncrumple a paper ball. Each layer in a deep network applies a transformation that disentangles the data a little—and a deep stack of layers makes tractable an extremely complicated disentanglement process.</p>
+
+  <h2 class="head" id="ch02lev1sec4"><a class="calibre3" id="ch02lev1sec4__title"></a>2.4. The engine of neural networks: gradient-based optimization</h2>
+
+  <p class="noind"><a id="iddle1301"></a><a id="iddle1355"></a><a id="iddle1691"></a><a id="iddle2003"></a>As you saw in the previous section, each neural layer from our first network example transforms its input data as follows:</p>
+  <pre class="calibre4" id="PLd0e5103">output = relu(dot(W, input) + b)</pre>
+
+  <p class="noind">In this expression, <kbd class="calibre24">W</kbd> and <kbd class="calibre24">b</kbd> are tensors that are attributes of the layer. They’re called the <i class="calibre5">weights</i> or <i class="calibre5">trainable parameters</i> of the layer (the <kbd class="calibre24">kernel</kbd> and <kbd class="calibre24">bias</kbd> attributes, respectively). These weights contain the information learned by the network from exposure to training data.</p>
+
+  <p class="noind">Initially, these weight matrices are filled with small random values (a step called <i class="calibre5">random initialization</i>). Of course, there’s no reason to expect that <kbd class="calibre24">relu(dot(W, input) + b)</kbd>, when <kbd class="calibre24">W</kbd> and <kbd class="calibre24">b</kbd> are random, will yield any useful representations. The resulting representations are meaningless—but they’re a starting point. What comes next is to gradually adjust these weights, based on a feedback signal. This gradual adjustment, also called <i class="calibre5">training</i>, is basically the learning that machine learning is all about.</p>
+
+  <p class="noind">This happens within what’s called a <i class="calibre5">training loop</i>, which works as follows. Repeat these steps in a loop, as long as necessary:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Draw a batch of training samples <kbd class="calibre24">x</kbd> and corresponding targets <kbd class="calibre24">y</kbd>.</li>
+
+    <li class="calibre17">Run the network on <kbd class="calibre24">x</kbd> (a step called the <i class="calibre5">forward pass</i>) to obtain predictions <kbd class="calibre24">y_pred</kbd>.</li>
+
+    <li class="calibre17">Compute the loss of the network on the batch, a measure of the mismatch between <kbd class="calibre24">y_pred</kbd> and <kbd class="calibre24">y</kbd>.</li>
+
+    <li class="calibre17">Update all weights of the network in a way that slightly reduces the loss on this batch.</li>
+  </ol>
+
+  <p class="noind">You’ll eventually end up with a network that has a very low loss on its training data: a low mismatch between predictions <kbd class="calibre24">y_pred</kbd> and expected targets <kbd class="calibre24">y</kbd>. The network has “learned” to map its inputs to correct targets. From afar, it may look like magic, but when you reduce it to elementary steps, it turns out to be simple.</p>
+
+  <p class="noind">Step 1 sounds easy enough—just I/O code. Steps 2 and 3 are merely the application of a handful of tensor operations, so you could implement these steps purely from what you learned in the previous section. The difficult part is step 4: updating the network’s weights. Given an individual weight coefficient in the network, how can you compute whether the coefficient should be increased or decreased, and by how much?</p>
+
+  <p class="noind">One naive solution would be to freeze all weights in the network except the one scalar coefficient being considered, and try different values for this coefficient. Let’s say the initial value of the coefficient is 0.3. After the forward pass on a batch of data, the loss of the network on the batch is 0.5. If you change the coefficient’s value to 0.35 and rerun the forward pass, the loss increases to 0.6. But if you lower the coefficient to 0.25, the loss falls to 0.4. In this case, it seems that updating the coefficient by -0.05 <a id="iddle1236"></a><a id="iddle1357"></a><a id="iddle1693"></a>would contribute to minimizing the loss. This would have to be repeated for all coefficients in the network.</p>
+
+  <p class="noind">But such an approach would be horribly inefficient, because you’d need to compute two forward passes (which are expensive) for every individual coefficient (of which there are many, usually thousands and sometimes up to millions). A much better approach is to take advantage of the fact that all operations used in the network are <i class="calibre5">differentiable</i>, and compute the <i class="calibre5">gradient</i> of the loss with regard to the network’s coefficients. You can then move the coefficients in the opposite direction from the gradient, thus decreasing the loss.</p>
+
+  <p class="noind">If you already know what <i class="calibre5">differentiable</i> means and what a <i class="calibre5">gradient</i> is, you can skip to <a href="#ch02lev2sec21">section 2.4.3</a>. Otherwise, the following two sections will help you understand these concepts.</p>
+
+  <h3 class="head1" id="ch02lev2sec19">2.4.1. <a id="ch02lev2sec19__title"></a>What’s a derivative?</h3>
+
+  <p class="noind">Consider a continuous, smooth function <kbd class="calibre24">f(x) = y</kbd>, mapping a real number <kbd class="calibre24">x</kbd> to a new real number <kbd class="calibre24">y</kbd>. Because the function is <i class="calibre5">continuous</i>, a small change in <kbd class="calibre24">x</kbd> can only result in a small change in <kbd class="calibre24">y</kbd>—that’s the intuition behind continuity. Let’s say you increase <kbd class="calibre24">x</kbd> by a small factor <kbd class="calibre24">epsilon_x</kbd>: this results in a small <kbd class="calibre24">epsilon_y</kbd> change to <kbd class="calibre24">y</kbd>:</p>
+  <pre class="calibre4" id="PLd0e5298">f(x + epsilon_x) = y + epsilon_y</pre>
+
+  <p class="noind">In addition, because the function is <i class="calibre5">smooth</i> (its curve doesn’t have any abrupt angles), when <kbd class="calibre24">epsilon_x</kbd> is small enough, around a certain point <kbd class="calibre24">p</kbd>, it’s possible to approximate <kbd class="calibre24">f</kbd> as a linear function of slope <kbd class="calibre24">a</kbd>, so that <kbd class="calibre24">epsilon_y</kbd> becomes <kbd class="calibre24">a * epsilon_x</kbd>:</p>
+  <pre class="calibre4" id="PLd0e5328">f(x + epsilon_x) = y + a * epsilon_x</pre>
+
+  <p class="noind">Obviously, this linear approximation is valid only when <kbd class="calibre24">x</kbd> is close enough to <kbd class="calibre24">p</kbd>.</p>
+
+  <p class="noind">The slope <kbd class="calibre24">a</kbd> is called the <i class="calibre5">derivative</i> of <kbd class="calibre24">f</kbd> in <kbd class="calibre24">p</kbd>. If <kbd class="calibre24">a</kbd> is negative, it means a small change of <kbd class="calibre24">x</kbd> around <kbd class="calibre24">p</kbd> will result in a decrease of <kbd class="calibre24">f(x)</kbd> (as shown in <a href="#ch02fig10">figure 2.10</a>); and if <kbd class="calibre24">a</kbd> is positive, a small change in <kbd class="calibre24">x</kbd> will result in an increase of <kbd class="calibre24">f(x)</kbd>. Further, the absolute value of <kbd class="calibre24">a</kbd> (the <i class="calibre5">magnitude</i> of the derivative) tells you how quickly this increase or decrease will happen.</p>
+
+  <p class="notetitle" id="ch02fig10">Figure 2.10. <a id="ch02fig10__title"></a>Derivative of <kbd class="calibre24">f</kbd> in <kbd class="calibre24">p</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig10.jpg"/></p>
+
+  <p class="noind">For every differentiable function <kbd class="calibre24">f(x)</kbd> (<i class="calibre5">differentiable</i> means “can be derived”: for example, smooth, continuous functions can be derived), there exists a derivative function <kbd class="calibre24">f'(x)</kbd> that maps values of <kbd class="calibre24">x</kbd> to the slope of the local linear approximation of <kbd class="calibre24">f</kbd> in those <a id="iddle1146"></a><a id="iddle1358"></a><a id="iddle1359"></a><a id="iddle1360"></a><a id="iddle1694"></a><a id="iddle1695"></a><a id="iddle1891"></a><a id="iddle1923"></a>points. For instance, the derivative of <kbd class="calibre24">cos(x)</kbd> is <kbd class="calibre24">-sin(x)</kbd>, the derivative of <kbd class="calibre24">f(x) = a * x</kbd> is <kbd class="calibre24">f'(x) = a</kbd>, and so on.</p>
+
+  <p class="noind">If you’re trying to update <kbd class="calibre24">x</kbd> by a factor <kbd class="calibre24">epsilon_x</kbd> in order to minimize <kbd class="calibre24">f(x)</kbd>, and you know the derivative of <kbd class="calibre24">f</kbd>, then your job is done: the derivative completely describes how <kbd class="calibre24">f(x)</kbd> evolves as you change <kbd class="calibre24">x</kbd>. If you want to reduce the value of <kbd class="calibre24">f(x)</kbd>, you just need to move <kbd class="calibre24">x</kbd> a little in the opposite direction from the derivative.</p>
+
+  <h3 class="head1" id="ch02lev2sec20">2.4.2. <a id="ch02lev2sec20__title"></a>Derivative of a tensor operation: the gradient</h3>
+
+  <p class="noind">A <i class="calibre5">gradient</i> is the derivative of a tensor operation. It’s the generalization of the concept of derivatives to functions of multidimensional inputs: that is, to functions that take tensors as inputs.</p>
+
+  <p class="noind">Consider an input vector <kbd class="calibre24">x</kbd>, a matrix <kbd class="calibre24">W</kbd>, a target <kbd class="calibre24">y</kbd>, and a loss function <kbd class="calibre24">loss</kbd>. You can use <kbd class="calibre24">W</kbd> to compute a target candidate <kbd class="calibre24">y_pred</kbd>, and compute the loss, or mismatch, between the target candidate <kbd class="calibre24">y_pred</kbd> and the target <kbd class="calibre24">y</kbd>:</p>
+  <pre class="calibre4" id="PLd0e5565">y_pred = dot(W, x)
+loss_value = loss(y_pred, y)</pre>
+
+  <p class="noind">If the data inputs <kbd class="calibre24">x</kbd> and <kbd class="calibre24">y</kbd> are frozen, then this can be interpreted as a function mapping values of <kbd class="calibre24">W</kbd> to loss values:</p>
+  <pre class="calibre4" id="PLd0e5583">loss_value = f(W)</pre>
+
+  <p class="noind">Let’s say the current value of <kbd class="calibre24">W</kbd> is <kbd class="calibre24">W0</kbd>. Then the derivative of <kbd class="calibre24">f</kbd> in the point <kbd class="calibre24">W0</kbd> is a tensor <kbd class="calibre24">gradient(f)(W0)</kbd> with the same shape as <kbd class="calibre24">W</kbd>, where each coefficient <kbd class="calibre24">gradient(f) (W0)[i, j]</kbd> indicates the direction and magnitude of the change in <kbd class="calibre24">loss_value</kbd> you observe when modifying <kbd class="calibre24">W0[i, j]</kbd>. That tensor <kbd class="calibre24">gradient(f)(W0)</kbd> is the gradient of the function <kbd class="calibre24">f(W) = loss_value</kbd> in <kbd class="calibre24">W0</kbd>.</p>
+
+  <p class="noind">You saw earlier that the derivative of a function <kbd class="calibre24">f(x)</kbd> of a single coefficient can be interpreted as the slope of the curve of <kbd class="calibre24">f</kbd>. Likewise, <kbd class="calibre24">gradient(f)(W0)</kbd> can be interpreted as the tensor describing the <i class="calibre5">curvature</i> of <kbd class="calibre24">f(W)</kbd> around <kbd class="calibre24">W0</kbd>.</p>
+
+  <p class="noind">For this reason, in much the same way that, for a function <kbd class="calibre24">f(x)</kbd>, you can reduce the value of <kbd class="calibre24">f(x)</kbd> by moving <kbd class="calibre24">x</kbd> a little in the opposite direction from the derivative, with a function <kbd class="calibre24">f(W)</kbd> of a tensor, you can reduce <kbd class="calibre24">f(W)</kbd> by moving <kbd class="calibre24">W</kbd> in the opposite direction from the gradient: for example, <kbd class="calibre24">W1 = W0 - step * gradient(f)(W0)</kbd> (where <kbd class="calibre24">step</kbd> is a small scaling factor). That means going against the curvature, which intuitively should put you lower on the curve. Note that the scaling factor <kbd class="calibre24">step</kbd> is needed because <kbd class="calibre24">gradient(f)(W0)</kbd> only approximates the curvature when you’re close to <kbd class="calibre24">W0</kbd>, so you don’t want to get too far from <kbd class="calibre24">W0</kbd>.</p>
+
+  <h3 class="head1" id="ch02lev2sec21">2.4.3. <a id="ch02lev2sec21__title"></a>Stochastic gradient descent</h3>
+
+  <p class="noind">Given a differentiable function, it’s theoretically possible to find its minimum analytically: it’s known that a function’s minimum is a point where the derivative is 0, so all you have to do is find all the points where the derivative goes to 0 and check for which of these points the function has the lowest value.</p>
+
+  <p class="noind"><a id="iddle1056"></a><a id="iddle1606"></a>Applied to a neural network, that means finding analytically the combination of weight values that yields the smallest possible loss function. This can be done by solving the equation <kbd class="calibre24">gradient(f)(W) = 0</kbd> for <kbd class="calibre24">W</kbd>. This is a polynomial equation of <i class="calibre5">N</i> variables, where <i class="calibre5">N</i> is the number of coefficients in the network. Although it would be possible to solve such an equation for <i class="calibre5">N</i> = 2 or <i class="calibre5">N</i> = 3, doing so is intractable for real neural networks, where the number of parameters is never less than a few thousand and can often be several tens of millions.</p>
+
+  <p class="noind">Instead, you can use the four-step algorithm outlined at the beginning of this section: modify the parameters little by little based on the current loss value on a random batch of data. Because you’re dealing with a differentiable function, you can compute its gradient, which gives you an efficient way to implement step 4. If you update the weights in the opposite direction from the gradient, the loss will be a little less every time:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Draw a batch of training samples <kbd class="calibre24">x</kbd> and corresponding targets <kbd class="calibre24">y</kbd>.</li>
+
+    <li class="calibre17">Run the network on <kbd class="calibre24">x</kbd> to obtain predictions <kbd class="calibre24">y_pred</kbd>.</li>
+
+    <li class="calibre17">Compute the loss of the network on the batch, a measure of the mismatch between <kbd class="calibre24">y_pred</kbd> and <kbd class="calibre24">y</kbd>.</li>
+
+    <li class="calibre17">Compute the gradient of the loss with regard to the network’s parameters (a <i class="calibre5">backward pass</i>).</li>
+
+    <li class="calibre17">Move the parameters a little in the opposite direction from the gradient—for example <kbd class="calibre24">W = step * gradient</kbd>—thus reducing the loss on the batch a bit.</li>
+  </ol>
+
+  <p class="noind">Easy enough! What I just described is called <i class="calibre5">mini-batch stochastic gradient descent</i> (mini-batch SGD). The term <i class="calibre5">stochastic</i> refers to the fact that each batch of data is drawn at random (<i class="calibre5">stochastic</i> is a scientific synonym of <i class="calibre5">random</i>). <a href="#ch02fig11">Figure 2.11</a> illustrates what happens in 1D, when the network has only one parameter and you have only one training sample.</p>
+
+  <p class="notetitle" id="ch02fig11">Figure 2.11. <a id="ch02fig11__title"></a>SGD down a 1D loss curve (one learnable parameter)</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig11.jpg"/></p>
+
+  <p class="noind"><a id="iddle1642"></a><a id="iddle1745"></a>As you can see, intuitively it’s important to pick a reasonable value for the <kbd class="calibre24">step</kbd> factor. If it’s too small, the descent down the curve will take many iterations, and it could get stuck in a local minimum. If <kbd class="calibre24">step</kbd> is too large, your updates may end up taking you to completely random locations on the curve.</p>
+
+  <p class="noind">Note that a variant of the mini-batch SGD algorithm would be to draw a single sample and target at each iteration, rather than drawing a batch of data. This would be <i class="calibre5">true</i> SGD (as opposed to <i class="calibre5">mini-batch</i> SGD). Alternatively, going to the opposite extreme, you could run every step on <i class="calibre5">all</i> data available, which is called <i class="calibre5">batch SGD</i>. Each update would then be more accurate, but far more expensive. The efficient compromise between these two extremes is to use mini-batches of reasonable size.</p>
+
+  <p class="noind">Although <a href="#ch02fig11">figure 2.11</a> illustrates gradient descent in a 1D parameter space, in practice you’ll use gradient descent in highly dimensional spaces: every weight coefficient in a neural network is a free dimension in the space, and there may be tens of thousands or even millions of them. To help you build intuition about loss surfaces, you can also visualize gradient descent along a 2D loss surface, as shown in <a href="#ch02fig12">figure 2.12</a>. But you can’t possibly visualize what the actual process of training a neural network looks like—you can’t represent a 1,000,000-dimensional space in a way that makes sense to humans. As such, it’s good to keep in mind that the intuitions you develop through these low-dimensional representations may not always be accurate in practice. This has historically been a source of issues in the world of deep-learning research.</p>
+
+  <p class="notetitle" id="ch02fig12">Figure 2.12. <a id="ch02fig12__title"></a>Gradient descent down a 2D loss surface (two learnable parameters)</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig12.jpg"/></p>
+
+  <p class="noind">Additionally, there exist multiple variants of SGD that differ by taking into account previous weight updates when computing the next weight update, rather than just looking at the current value of the gradients. There is, for instance, SGD with momentum, as well as Adagrad, RMSProp, and several others. Such variants are known as <i class="calibre5">optimization methods</i> or <i class="calibre5">optimizers</i>. In particular, the concept of <i class="calibre5">momentum</i>, which is used in many of these variants, deserves your attention. Momentum addresses two issues with SGD: convergence speed and local minima. Consider <a href="#ch02fig13">figure 2.13</a>, which shows the curve of a loss as a function of a network parameter.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch02fig13">Figure 2.13. <a id="ch02fig13__title"></a>A local minimum and a global minimum</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/02fig13.jpg"/></p>
+
+  <p class="noind"><a id="iddle1054"></a><a id="iddle1356"></a><a id="iddle1692"></a>As you can see, around a certain parameter value, there is a <i class="calibre5">local minimum</i>: around that point, moving left would result in the loss increasing, but so would moving right. If the parameter under consideration were being optimized via SGD with a small learning rate, then the optimization process would get stuck at the local minimum instead of making its way to the global minimum.</p>
+
+  <p class="noind">You can avoid such issues by using momentum, which draws inspiration from physics. A useful mental image here is to think of the optimization process as a small ball rolling down the loss curve. If it has enough momentum, the ball won’t get stuck in a ravine and will end up at the global minimum. Momentum is implemented by moving the ball at each step based not only on the current slope value (current acceleration) but also on the current velocity (resulting from past acceleration). In practice, this means updating the parameter <kbd class="calibre24">w</kbd> based not only on the current gradient value but also on the previous parameter update, such as in this naive implementation:</p>
+  <pre class="calibre4" id="PLd0e5938">past_velocity = 0.
+momentum = 0.1                                                      <span class="cambriamathin">❶</span>
+while loss &gt; 0.01:                                                  <span class="cambriamathin">❷</span>
+    w, loss, gradient = get_current_parameters()
+    velocity = past_velocity * momentum - learning_rate * gradient
+    w = w + momentum * velocity - learning_rate * gradient
+    past_velocity = velocity
+    update_parameter(w)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Constant momentum factor</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Optimization loop</p>
+  </div>
+
+  <h3 class="head1" id="ch02lev2sec22">2.4.4. <a id="ch02lev2sec22__title"></a>Chaining derivatives: the Backpropagation algorithm</h3>
+
+  <p class="noind">In the previous algorithm, we casually assumed that because a function is differentiable, we can explicitly compute its derivative. In practice, a neural network function consists of many tensor operations chained together, each of which has a simple, known derivative. For instance, this is a network <kbd class="calibre24">f</kbd> composed of three tensor operations, <kbd class="calibre24">a</kbd>, <kbd class="calibre24">b</kbd>, and <kbd class="calibre24">c</kbd>, with weight matrices <kbd class="calibre24">W1</kbd>, <kbd class="calibre24">W2</kbd>, and <kbd class="calibre24">W3</kbd>:</p>
+  <pre class="calibre4" id="PLd0e6001">f(W1, W2, W3) = a(W1, b(W2, c(W3)))</pre>
+
+  <p class="noind"><a id="iddle1848"></a><a id="iddle1936"></a>Calculus tells us that such a chain of functions can be derived using the following identity, called the <i class="calibre5">chain rule</i>: <kbd class="calibre24">f(g(x)) = f'(g(x)) * g'(x)</kbd>. Applying the chain rule to the computation of the gradient values of a neural network gives rise to an algorithm called <i class="calibre5">Backpropagation</i> (also sometimes called <i class="calibre5">reverse-mode differentiation</i>). Backpropagation starts with the final loss value and works backward from the top layers to the bottom layers, applying the chain rule to compute the contribution that each parameter had in the loss value.</p>
+
+  <p class="noind">Nowadays, and for years to come, people will implement networks in modern frameworks that are capable of <i class="calibre5">symbolic differentiation</i>, such as TensorFlow. This means that, given a chain of operations with a known derivative, they can compute a gradient <i class="calibre5">function</i> for the chain (by applying the chain rule) that maps network parameter values to gradient values. When you have access to such a function, the backward pass is reduced to a call to this gradient function. Thanks to symbolic differentiation, you’ll never have to implement the Backpropagation algorithm by hand. For this reason, we won’t waste your time and your focus on deriving the exact formulation of the Backpropagation algorithm in these pages. All you need is a good understanding of how gradient-based optimization works.</p>
+
+  <h2 class="head" id="ch02lev1sec5"><a class="calibre3" id="ch02lev1sec5__title"></a>2.5. Looking back at our first example</h2>
+
+  <p class="noind"><a id="iddle1082"></a><a id="iddle1227"></a><a id="iddle1262"></a><a id="iddle1730"></a><a id="iddle1850"></a>You’ve reached the end of this chapter, and you should now have a general understanding of what’s going on behind the scenes in a neural network. Let’s go back to the first example and review each piece of it in the light of what you’ve learned in the previous three sections.</p>
+
+  <p class="noind">This was the input data:</p>
+  <pre class="calibre4" id="PLd0e6082">(train_images, train_labels), (test_images, test_labels) = mnist.load_data()
+
+train_images = train_images.reshape((60000, 28 * 28))
+train_images = train_images.astype('float32') / 255
+
+test_images = test_images.reshape((10000, 28 * 28))
+test_images = test_images.astype('float32') / 255</pre>
+
+  <p class="noind">Now you understand that the input images are stored in Numpy tensors, which are here formatted as <kbd class="calibre24">float32</kbd> tensors of shape <kbd class="calibre24">(60000, 784)</kbd> (training data) and <kbd class="calibre24">(10000, 784)</kbd> (test data), respectively.</p>
+
+  <p class="noind">This was our network:</p>
+  <pre class="calibre4" id="PLd0e6103">network = models.Sequential()
+network.add(layers.Dense(512, activation='relu', input_shape=(28 * 28,)))
+network.add(layers.Dense(10, activation='softmax'))</pre>
+
+  <p class="noind">Now you understand that this network consists of a chain of two <kbd class="calibre24">Dense</kbd> layers, that each layer applies a few simple tensor operations to the input data, and that these operations involve weight tensors. Weight tensors, which are attributes of the layers, are where the <i class="calibre5">knowledge</i> of the network persists.</p>
+
+  <p class="noind">This was the network-compilation step:</p>
+  <pre class="calibre4" id="PLd0e6121">network.compile(optimizer='rmsprop',
+                loss='categorical_crossentropy',
+                metrics=['accuracy'])</pre>
+
+  <p class="noind">Now you understand that <kbd class="calibre24">categorical_crossentropy</kbd> is the loss function that’s used as a feedback signal for learning the weight tensors, and which the training phase will attempt to minimize. You also know that this reduction of the loss happens via mini-batch stochastic gradient descent. The exact rules governing a specific use of gradient descent are defined by the <kbd class="calibre24">rmsprop</kbd> optimizer passed as the first argument.</p>
+
+  <p class="noind">Finally, this was the training loop:</p>
+  <pre class="calibre4" id="PLd0e6139">network.fit(train_images, train_labels, epochs=5, batch_size=128)</pre>
+
+  <p class="noind">Now you understand what happens when you call <kbd class="calibre24">fit</kbd>: the network will start to iterate on the training data in mini-batches of 128 samples, 5 times over (each iteration over all the training data is called an <i class="calibre5">epoch</i>). At each iteration, the network will compute the gradients of the weights with regard to the loss on the batch, and update the weights accordingly. After these 5 epochs, the network will have performed 2,345 gradient updates (469 per epoch), and the loss of the network will be sufficiently low that the network will be capable of classifying handwritten digits with high accuracy.</p>
+
+  <p class="noind">At this point, you already know most of what there is to know about neural networks.</p>
+
+  <p class="noind"></p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch02sb02">Chapter summary</b>
+
+    <ul class="calibre16">
+      <li class="calibre17"><i class="calibre5">Learning</i> means finding a combination of model parameters that minimizes a loss function for a given set of training data samples and their corresponding targets.</li>
+
+      <li class="calibre17">Learning happens by drawing random batches of data samples and their targets, and computing the gradient of the network parameters with respect to the loss on the batch. The network parameters are then moved a bit (the magnitude of the move is defined by the learning rate) in the opposite direction from the gradient.</li>
+
+      <li class="calibre17">The entire learning process is made possible by the fact that neural networks are chains of differentiable tensor operations, and thus it’s possible to apply the chain rule of derivation to find the gradient function mapping the current parameters and current batch of data to a gradient value.</li>
+
+      <li class="calibre17">Two key concepts you’ll see frequently in future chapters are <i class="calibre5">loss</i> and <i class="calibre5">optimizers</i>. These are the two things you need to define before you begin feeding data into a network.</li>
+
+      <li class="calibre17">The <i class="calibre5">loss</i> is the quantity you’ll attempt to minimize during training, so it should represent a measure of success for the task you’re trying to solve.</li>
+
+      <li class="calibre17">The <i class="calibre5">optimizer</i> specifies the exact way in which the gradient of the loss will be used to update parameters: for instance, it could be the RMSProp optimizer, SGD with momentum, and so on.</li>
+    </ul>
+  </div>
+  <hr class="calibre25"/>
+
+  <div class="calibre14" id="calibre_pb_16"></div>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Deep Learning with Python</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../Styles/stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../Styles/page_styles.css" rel="stylesheet" type="text/css"/>
+</head>
+  <body class="calibre">
+  <h1 class="part" id="app02">Appendix B. <a class="calibre3" id="app02__title"></a>Running Jupyter notebooks on an EC2 GPU instance</h1>
+
+  <p class="noind"><a id="iddle1447"></a>This appendix provides a step-by-step guide to running deep-learning Jupyter notebooks on an AWS GPU instance and editing the notebooks from anywhere in your browser. This is the perfect setup for deep-learning research if you don’t have a GPU on your local machine. The original (and up-to-date) version of this guide can be found at <a href="https://blog.keras.io">https://blog.keras.io</a>.</p>
+
+  <h2 class="head" id="app02lev1sec1"><a class="calibre3" id="app02lev1sec1__title"></a>B.1. What are Jupyter notebooks? Why run Jupyter notebooks on AWS GPUs?</h2>
+
+  <p class="noind">A <i class="calibre5">Jupyter notebook</i> is a web app that allows you to write and annotate Python code interactively. It’s a great way to experiment, do research, and share what you’re working on.</p>
+
+  <p class="noind">Many deep-learning applications are very computationally intensive and can take hours or even days when running on a laptop’s CPU cores. Running on a GPU can speed up training and inference by a considerable factor (often 5 to 10 times, when going from a modern CPU to a single modern GPU). But you may not have access to a GPU on your local machine. Running Jupyter notebooks on AWS gives you the same experience as running on your local machine, while allowing you to use one or several GPUs on AWS. And you only pay for what you use, which can compare favorably to investing in your own GPU(s) if you use deep learning only occasionally.</p>
+
+  <h2 class="head" id="app02lev1sec2"><a class="calibre3" id="app02lev1sec2__title"></a>B.2. Why would you not want to use Jupyter on AWS for deep learning?</h2>
+
+  <p class="noind"><a id="iddle1049"></a><a id="iddle1050"></a><a id="iddle1348"></a><a id="iddle1449"></a><a id="iddle1452"></a>AWS GPU instances can quickly become expensive. The one we suggest using costs $0.90 per hour. This is fine for occasional use; but if you’re going to run experiments for several hours per day every day, then you’re better off building your own deep-learning machine with a TITAN X or GTX 1080 Ti.</p>
+
+  <p class="noind">In summary, use the Jupyter-on-EC2 setup if you don’t have access to a local GPU or if you don’t want to deal with installing Keras dependencies, in particular GPU drivers. If you have a access to a local GPU, we recommend running your models locally, instead. In that case, use the installation guide in <a href="../Text/A.html#app01">appendix A</a>.</p>
+  <hr class="calibre25"/>
+
+  <p class="notetitle" id="app02note01">Note</p>
+
+  <p class="noindclose">You’ll need an active AWS account. Some familiarity with AWS EC2 will help, but it isn’t mandatory.</p>
+  <hr class="calibre25"/>
+
+  <h2 class="head" id="app02lev1sec3"><a class="calibre3" id="app02lev1sec3__title"></a>B.3. Setting up an AWS GPU instance</h2>
+
+  <p class="noind">The following setup process will take 5 to 10 minutes:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Navigate to the EC2 control panel at <a href="https://console.aws.amazon.com/ec2/v2">https://console.aws.amazon.com/ec2/v2</a>, and click the Launch Instance link (see <a href="#app02fig01">figure B.1</a>).
+
+      <p class="notetitle1" id="app02fig01">Figure B.1. <a id="app02fig01__title"></a>The EC2 control panel</p>
+
+      <p class="calibre20"><img alt="" class="calibre6" src="../Images/0bfig01_alt.jpg"/></p>
+    </li>
+
+    <li class="calibre17">Select AWS Marketplace (see <a href="#app02fig02">figure B.2</a>), and search for “deep learning” in the search box. Scroll down until you find the AMI named Deep Learning AMI Ubuntu Version (see <a href="#app02fig03">figure B.3</a>); select it.
+
+      <p class="notetitle1" id="app02fig02">Figure B.2. <a id="app02fig02__title"></a>The EC2 AMI Marketplace</p>
+
+      <p class="calibre20"><img alt="" class="calibre6" src="../Images/0bfig02.jpg"/></p>
+
+      <p class="notetitle1" id="app02fig03">Figure B.3. <a id="app02fig03__title"></a>The EC2 Deep Learning AMI</p>
+
+      <p class="calibre20"><img alt="" class="calibre6" src="../Images/0bfig03_alt.jpg"/></p>
+    </li>
+
+    <li class="calibre17">Select the p2.xlarge instance (see <a href="#app02fig04">figure B.4</a>). This instance type provides access to a single GPU and costs $0.90 per hour of usage (as of March 2017).
+
+      <p class="notetitle1" id="app02fig04">Figure B.4. <a id="app02fig04__title"></a>The p2.xlarge instance</p>
+
+      <p class="calibre20"><img alt="" class="calibre6" src="../Images/0bfig04_alt.jpg"/></p>
+    </li>
+
+    <li class="calibre17">You can keep the default configuration for the steps Configure Instance, Add Storage, and Add Tags, but you’ll customize the Configure Security Group step. Create a custom TCP rule to allow port 8888 (see <a href="#app02fig05">figure B.5</a>): this rule can be allowed either for your current public IP (such as that of your laptop) or for any IP (such as 0.0.0.0/0) if the former isn’t possible. Note that if you allow port 8888 for any IP, then literally anyone will be able to listen to that port on your instance (which is where you’ll run IPython notebooks). You’ll add password protection to the notebooks to mitigate the risk of random strangers modifying them, but that may be pretty weak protection. If at all possible, you should consider restricting access to a specific IP. But if your IP address changes constantly, then that isn’t a practical choice. If you’re going to leave access open to any IP, then remember not to leave sensitive data on the instance.
+
+      <p class="notetitle1" id="app02fig05">Figure B.5. <a id="app02fig05__title"></a>Configure a new security group.</p>
+
+      <p class="calibre20"><img alt="" class="calibre6" src="../Images/0bfig05_alt.jpg"/></p>
+      <hr class="calibre38"/>
+
+      <p class="notetitle1" id="app02note02">Note</p>
+
+      <p class="noindclose1"><a id="iddle1103"></a><a id="iddle1919"></a>At the end of the launch process, you’ll be asked if you want to create new connection keys or if you want to reuse existing keys. If you’ve never used EC2 before, create new keys and download them.</p>
+      <hr class="calibre38"/>
+    </li>
+
+    <li class="calibre17">To connect to your instance, select it on the EC2 control panel, click the Connect button, and follow the instructions (see <a href="#app02fig06">figure B.6</a>). Note that it may take a few minutes for the instance to boot up. If you can’t connect at first, wait a bit and try again.
+
+      <p class="notetitle1" id="app02fig06">Figure B.6. <a id="app02fig06__title"></a>Connection instructions</p>
+
+      <p class="calibre20"><img alt="" class="calibre6" src="../Images/0bfig06_alt.jpg"/></p>
+    </li>
+
+    <li class="calibre17">Once you’re logged in to the instance via SSH, create an ssl directory at the root of the instance, and <kbd class="calibre24">cd</kbd> to it (not mandatory, but cleaner):
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ mkdir ssl
+$ cd ssl</pre>
+    </li>
+
+    <li class="calibre17">
+      <a id="iddle1443"></a><a id="iddle1446"></a><a id="iddle1590"></a><a id="iddle1766"></a>Create a new SSL certificate using OpenSSL, and create cert.key and cert.pem files in the current ssl directory:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout "cert.key" -out
+<span class="cambriamathin2">➥</span>  "cert.pem" -batch</pre>
+    </li>
+  </ol>
+
+  <h3 class="head1" id="app02lev2sec1">B.3.1. <a id="app02lev2sec1__title"></a>Configuring Jupyter</h3>
+
+  <p class="noind">Before you use Jupyter, you need to touch up its default configuration. Follow these steps:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Generate a new Jupyter config file (still on the remote instance):
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ jupyter notebook --generate-config</pre>
+    </li>
+
+    <li class="calibre17">Optionally, you can generate a Jupyter password for your notebooks. Because your instance may be configured to be accessible from any IP (depending on the choice you made when configuring the security group), it’s better to restrict access to Jupyter via a password. To generate a password, open an IPython shell (<kbd class="calibre24">ipython</kbd> command) and run the following:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">from IPython.lib import passwd
+passwd()
+exit</pre>
+    </li>
+
+    <li class="calibre17">The <kbd class="calibre24">passwd()</kbd> command will ask you to enter and verify a password. After you do, it will display a hash of your password. Copy that hash—you’ll need it soon. It looks something like this:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">sha1:b592a9cf2ec6:b99edb2fd3d0727e336185a0b0eab561aa533a43</pre>Note that this is a hash of the word <i class="calibre5">password</i>, which isn’t a password you should be using.
+    </li>
+
+    <li class="calibre17">Use vi (or your favorite available text editor) to edit the Jupyter config file:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ vi ~/.jupyter/jupyter_notebook_config.py</pre>
+    </li>
+
+    <li class="calibre17">The config file is a Python file with all lines commented out. Insert the following lines of Python code at the beginning of the file:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">c = get_config()                                                  <span class="cambriamathin2">❶</span>
+c.NotebookApp.certfile = u'/home/ubuntu/ssl/cert.pem'             <span class="cambriamathin2">❷</span>
+c.NotebookApp.keyfile = u'/home/ubuntu/ssl/cert.key'              <span class="cambriamathin2">❸</span>
+c.IPKernelApp.pylab = 'inline'                                    <span class="cambriamathin2">❹</span>
+c.NotebookApp.ip = '*'                                            <span class="cambriamathin2">❺</span>
+
+c.NotebookApp.open_browser = False                                <span class="cambriamathin2">❻</span>
+c.NotebookApp.password =                                          <span class="cambriamathin2">❼</span>
+<span class="cambriamathin2">➥</span>  'sha1:b592a9cf2ec6:b99edb2fd3d0727e336185a0b0eab561aa533a43'   <span class="cambriamathin2">❼</span></pre>
+
+      <div class="calibre39">
+        <p class="codeannotation"><span class="cambriamathin1">❶</span> Gets the config object</p>
+
+        <p class="codeannotation"><span class="cambriamathin1">❷</span> Path to the certificate you generated</p>
+
+        <p class="codeannotation"><span class="cambriamathin1">❸</span> Path to the private key you generated for the certificate</p>
+
+        <p class="codeannotation"><span class="cambriamathin1">❹</span> Inline figure when using Matplotlib</p>
+
+        <p class="codeannotation"><span class="cambriamathin1">❺</span> Serves the notebooks locally</p>
+
+        <p class="codeannotation"><span class="cambriamathin1">❻</span> Don’t open a browser window by default when using notebooks.</p>
+
+        <p class="codeannotation"><span class="cambriamathin1">❼</span> Password hash you generated earlier</p>
+      </div>
+    </li>
+  </ol>
+  <hr class="calibre25"/>
+
+  <p class="notetitle" id="app02note03">Note</p>
+
+  <p class="noindclose"><a id="iddle1017" class="calibre13"></a><a id="iddle1047" class="calibre13"></a><a id="iddle1048" class="calibre13"></a><a id="iddle1078" class="calibre13"></a><a id="iddle1347" class="calibre13"></a><a id="iddle1434" class="calibre13"></a><a id="iddle1448" class="calibre13"></a><a id="iddle1450" class="calibre13"></a><a id="iddle1451" class="calibre13"></a><a id="iddle1464" class="calibre13"></a><a id="iddle1521" class="calibre13"></a><a id="iddle1769" class="calibre13"></a><a id="iddle2055" class="calibre13"></a>In case you aren’t accustomed to using vi, remember that you need to press I to begin inserting content. When you’re finished, press Esc, enter <kbd class="calibre27">:wq</kbd>, and press Enter to quit vi and save your changes (<kbd class="calibre27">:wq</kbd> stands for <i class="calibre30">write-quit</i>).</p>
+  <hr class="calibre25"/>
+
+  <h2 class="head" id="app02lev1sec4"><a class="calibre3" id="app02lev1sec4__title"></a>B.4. Installing Keras</h2>
+
+  <p class="noind">You’re almost ready to start using Jupyter. But first, you need to update Keras. A version of Keras is preinstalled on the AMI, but it may not necessarily be up to date. On the remote instance, run this command:</p>
+  <pre class="calibre4" id="PLd0e33903">$ sudo pip install keras --upgrade</pre>
+
+  <p class="noind">Because you’ll probably use Python 3 (the notebooks provided with this book use Python 3), you should also update Keras using <kbd class="calibre24">pip3</kbd>:</p>
+  <pre class="calibre4" id="PLd0e33915">$ sudo pip3 install keras --upgrade</pre>
+
+  <p class="noind">If there’s an existing Keras configuration file on the instance (there shouldn’t be, but the AMI may have changed since I wrote this), you should delete it, just in case. Keras will re-create a standard configuration file when it’s launched for the first time.</p>
+
+  <p class="noind">If the following code snippet returns an error saying that the file doesn’t exist, you can ignore it:</p>
+  <pre class="calibre4" id="PLd0e33927">$ rm -f ~/.keras/keras.json</pre>
+
+  <h2 class="head" id="app02lev1sec5"><a class="calibre3" id="app02lev1sec5__title"></a>B.5. Setting up local port forwarding</h2>
+
+  <p class="noind">In a shell <i class="calibre5">on your local machine</i> (<i class="calibre5">not</i> the remote instance), start forwarding your local port 443 (the HTTPS port) to port 8888 of the remote instance:</p>
+  <pre class="calibre4" id="PLd0e33949">$ sudo ssh -i awsKeys.pem -L local_port:local_machine:remote_port remote_machine</pre>
+
+  <p class="noind">In my case, it would look like the following:</p>
+  <pre class="calibre4" id="PLd0e33958">$ sudo ssh -i awsKeys.pem -L
+<span class="cambriamathin">➥</span>   443:127.0.0.1:8888 ubuntu@ec2-54-147-126-214.compute-1.amazonaws.com</pre>
+
+  <h2 class="head" id="app02lev1sec6"><a class="calibre3" id="app02lev1sec6__title"></a>B.6. Using Jupyter from your local browser</h2>
+
+  <p class="noind">On the remote instance, clone the GitHub repository containing the Jupyter notebooks associated with this book:</p>
+  <pre class="calibre4" id="PLd0e33978">$ git clone https://github.com/fchollet/deep-learning-with-python-notebooks.git
+cd deep-learning-with-python-notebooks</pre>
+
+  <p class="noind">Start Jupyter Notebook by running this command, still on the remote instance:</p>
+  <pre class="calibre4" id="PLd0e33987">$ jupyter notebook</pre>
+
+  <p class="noind">Then, in your local browser, navigate to the local address you’re forwarding to the remote notebook process (https://127.0.0.1). Be sure you use HTTPS in the address, or you’ll get an SSL error.</p>
+
+  <p class="noind">You should see the safety warning shown in <a href="#app02fig07">figure B.7</a>. This warning is due to the fact that the SSL certificate you generated isn’t verified by a trusted authority (obviously—you generated your own). Click Advanced, and proceed to navigate.</p>
+
+  <p class="notetitle" id="app02fig07">Figure B.7. <a id="app02fig07__title"></a>A safety warning you can ignore</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/0bfig07_alt.jpg"/></p>
+
+  <p class="noind">You should be prompted to enter your Jupyter password. You’ll then arrive at the Jupyter dashboard (see <a href="#app02fig08">figure B.8</a>).</p>
+
+  <p class="notetitle" id="app02fig08">Figure B.8. <a id="app02fig08__title"></a>The Jupyter dashboard</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/0bfig08_alt.jpg"/></p>
+
+  <p class="noind">Choose New &gt; Notebook to get started (see <a href="#app02fig09">figure B.9</a>). You can use the Python version of your choice. All set!</p>
+
+  <p class="notetitle" id="app02fig09">Figure B.9. <a id="app02fig09__title"></a>Create a new notebook.</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/0bfig09.jpg"/></p>
+</body>
+</html>

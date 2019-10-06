@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Deep Learning with Python</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../Styles/stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../Styles/page_styles.css" rel="stylesheet" type="text/css"/>
+</head>
+  <body class="calibre">
+  <h1 class="part" id="app01">Appendix A. <a class="calibre3" id="app01__title"></a>Installing Keras and its dependencies on Ubuntu</h1>
+
+  <p class="noind"><a id="iddle1075"></a><a id="iddle1141"></a><a id="iddle1144"></a><a id="iddle1364"></a><a id="iddle1373"></a>The process of setting up a deep-learning workstation is fairly involved and consists of the following steps, which this appendix will cover in detail:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Install the Python scientific suite—Numpy and SciPy—and make sure you have a Basic Linear Algebra Subprogram (BLAS) library installed so your models run fast on CPU.</li>
+
+    <li class="calibre17">Install two extras packages that come in handy when using Keras: HDF5 (for saving large neural-network files) and Graphviz (for visualizing neural--network architectures).</li>
+
+    <li class="calibre17">Make sure your GPU can run deep-learning code, by installing CUDA drivers and cuDNN.</li>
+
+    <li class="calibre17">Install a backend for Keras: TensorFlow, CNTK, or Theano.</li>
+
+    <li class="calibre17">Install Keras.</li>
+  </ol>
+
+  <p class="noind">It may seem like a daunting process. In fact, the only difficult part is setting up GPU support—otherwise, the entire process can be done with a few commands and takes only a couple of minutes.</p>
+
+  <p class="noind">We’ll assume you have a fresh installation of Ubuntu, with an NVIDIA GPU available. Before you start, make sure you have <kbd class="calibre24">pip</kbd> installed and that your package manager is up to date:</p>
+  <pre class="calibre4" id="PLd0e32752">$ sudo apt-get update
+$ sudo apt-get upgrade
+$ sudo apt-get install python-pip python-dev</pre>
+
+  <p class="noind"></p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch01sb01">Python 2 vs. Python 3</b>
+
+    <p class="noind"><a id="iddle1435"></a><a id="iddle1436"></a><a id="iddle1437"></a><a id="iddle1806"></a><a id="iddle1807"></a><a id="iddle1809"></a><a id="iddle1872"></a><a id="iddle2019"></a>By default, Ubuntu uses Python 2 when it installs Python packages such as <kbd class="calibre24">python-pip</kbd>. If you wish to use Python 3 instead, you should use the <kbd class="calibre24">python3</kbd> prefix instead of <kbd class="calibre24">python</kbd>. For instance:</p>
+    <pre class="calibre4" id="PLd0e32832">$ sudo apt-get install python3-pip python3-dev</pre>
+
+    <p class="noind">When you’re installing packages using <kbd class="calibre24">pip</kbd>, keep in mind that by default, it targets Python 2. To target Python 3, you should use <kbd class="calibre24">pip3</kbd>:</p>
+    <pre class="calibre4" id="PLd0e32847">$ sudo pip3 install tensorflow-gpu</pre>
+  </div>
+  <hr class="calibre25"/>
+
+  <h2 class="head" id="app01lev1sec1"><a class="calibre3" id="app01lev1sec1__title"></a>A.1. Installing the Python scientific suite</h2>
+
+  <p class="noind">If you use a Mac, we recommend that you install the Python scientific suite via Anaconda, which you can get at <a href="http://www.continuum.io/downloads">www.continuum.io/downloads</a>. Note that this won’t include HDF5 and Graphviz, which you have to install manually. Following are the steps for a <i class="calibre5">manual</i> installation of the Python scientific suite on Ubuntu:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Install a BLAS library (OpenBLAS, in this case), to ensure that you can run fast tensor operations on your CPU:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ sudo apt-get install build-essential cmake git unzip \
+     pkg-config libopenblas-dev liblapack-dev</pre>
+    </li>
+
+    <li class="calibre17">Install the Python scientific suite: Numpy, SciPy and Matplotlib. This is necessary in order to perform any kind of machine learning or scientific computing in Python, regardless of whether you’re doing deep learning:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ sudo apt-get install python-numpy python-scipy python- matplotlib
+<span class="cambriamathin2">➥</span>  python-yaml</pre>
+    </li>
+
+    <li class="calibre17">Install HDF5. This library, originally developed by NASA, stores large files of numeric data in an efficient binary format. It will allow you to save your Keras models to disk quickly and efficiently:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ sudo apt-get install libhdf5-serial-dev python-h5py</pre>
+    </li>
+
+    <li class="calibre17">Install Graphviz and pydot-ng, two packages that will let you visualize Keras models. They aren’t necessary to run Keras, so you could skip this step and install these packages when you need them. Here are the commands:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ sudo apt-get install graphviz
+$ sudo pip install pydot-ng</pre>
+    </li>
+
+    <li class="calibre17">Install additional packages that are used in some of our code examples:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ sudo apt-get install python-opencv</pre>
+    </li>
+  </ol>
+
+  <h2 class="head" id="app01lev1sec2"><a class="calibre3" id="app01lev1sec2__title"></a>A.2. Setting up GPU support</h2>
+
+  <p class="noind"><a id="iddle1142"></a><a id="iddle1145"></a><a id="iddle1237"></a><a id="iddle1351"></a><a id="iddle1431"></a><a id="iddle1432"></a><a id="iddle2021"></a>Using a GPU isn’t strictly necessary, but it’s strongly recommended. All the code examples found in this book can be run on a laptop CPU, but you may sometimes have to wait for several hours for a model to train, instead of mere minutes on a good GPU. If you don’t have a modern NVIDIA GPU, you can skip this step and go directly to <a href="#app01lev1sec3">section A.3</a>.</p>
+
+  <p class="noind">To use your NVIDIA GPU for deep learning, you need to install two things:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><b class="calibre22">CUDA—</b> A set of drivers for your GPU that allows it to run a low-level programming language for parallel computing.</li>
+
+    <li class="calibre17"><b class="calibre22">cuDNN—</b> A library of highly optimized primitives for deep learning. When using cuDNN and running on a GPU, you can typically increase the training speed of your models by 50% to 100%.</li>
+  </ul>
+
+  <p class="noind">TensorFlow depends on particular versions of CUDA and the cuDNN library. At the time of writing, it uses CUDA version 8 and cuDNN version 6. Please consult the Tensor-Flow website for detailed instructions about which versions are currently recommended: <a href="http://www.tensorflow.org/install/install_linux">www.tensorflow.org/install/install_linux</a>.</p>
+
+  <p class="noind">Follow these steps:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Download CUDA. For Ubuntu (and other Linux flavors), NVIDIA provides a ready-to-use package that you can download from <a href="https://developer.nvidia.com/cuda-downloads">https://developer.nvidia.com/cuda-downloads</a>:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/
+<span class="cambriamathin2">➥</span>  x86_64/cuda-repo-ubuntu1604_9.0.176-1_amd64.deb</pre>
+    </li>
+
+    <li class="calibre17">Install CUDA. The easiest way to do so is to use Ubuntu’s <kbd class="calibre24">apt</kbd> on this package. This will allow you to easily install updates via <kbd class="calibre24">apt</kbd> as they become available:
+
+      <div class="calibre21"></div>
+      <pre class="calibre35">$ sudo dpkg -i cuda-repo-ubuntu1604_9.0.176-1_amd64.deb
+$ sudo apt-key adv --fetch-keys
+<span class="cambriamathin2">➥</span>  http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/
+<span class="cambriamathin2">➥</span>  x86_64/7fa2af80.pub
+$ sudo apt-get update
+$ sudo apt-get install cuda-8-0</pre>
+    </li>
+
+    <li class="calibre17">Install cuDNN:
+
+      <ol class="calibre36">
+        <li class="calibre29">Register for a free NVIDIA developer account (unfortunately, this is necessary in order to gain access to the cuDNN download), and download cuDNN at <a href="https://developer.NVIDIA.com/cudnn">https://developer.NVIDIA.com/cudnn</a> (select the version of cuDNN compatible with TensorFlow). Like CUDA, NVIDIA provides packages for different Linux flavors—we’ll use the version for Ubuntu 16.04. Note that if you’re working with an EC2 install, you won’t be able to download the cuDNN archive directly to your instance; instead, download it to your local machine and then upload it to your EC2 instance (via <kbd class="calibre24">scp</kbd>).</li>
+
+        <li class="calibre29">Install cuDNN:
+
+          <div class="calibre21"></div>
+          <pre class="calibre37">$ sudo dpkg -i dpkg -i libcudnn6*.deb</pre>
+        </li>
+      </ol>
+    </li>
+
+    <li class="calibre17">
+      <a id="iddle1433"></a><a id="iddle1438"></a><a id="iddle1439"></a><a id="iddle1463"></a><a id="iddle1981"></a><a id="iddle2018"></a><a id="iddle2020"></a>Install TensorFlow:
+
+      <ol class="calibre36">
+        <li class="calibre29">TensorFlow with or without GPU support can be installed from PyPI using Pip. Here’s the command without GPU support:
+
+          <div class="calibre21"></div>
+          <pre class="calibre37">$ sudo pip install tensorflow</pre>
+        </li>
+
+        <li class="calibre29">Here’s the command to install TensorFlow with GPU support:
+
+          <div class="calibre21"></div>
+          <pre class="calibre37">$ sudo pip install tensorflow-gpu</pre>
+        </li>
+      </ol>
+    </li>
+  </ol>
+
+  <h2 class="head" id="app01lev1sec3"><a class="calibre3" id="app01lev1sec3__title"></a>A.3. Installing Theano (optional)</h2>
+
+  <p class="noind">Because you’ve already installed TensorFlow, you don’t have to install Theano in order to run Keras code. But it can sometimes be useful to switch back and forth from Tensor-Flow to Theano when building Keras models.</p>
+
+  <p class="noind">Theano can also be installed from PyPI:</p>
+  <pre class="calibre4" id="PLd0e33201">$ sudo pip install theano</pre>
+
+  <p class="noind">If you’re using a GPU, then you should configure Theano to use your GPU. You can create a Theano configuration file with this command:</p>
+  <pre class="calibre4" id="PLd0e33210">nano ~/.theanorc</pre>
+
+  <p class="noind">Then, fill in the file with the following configuration:</p>
+  <pre class="calibre4" id="PLd0e33219">[global]
+floatX = float32
+device = gpu0
+
+[nvcc]
+fastmath = True</pre>
+
+  <h2 class="head" id="app01lev1sec4"><a class="calibre3" id="app01lev1sec4__title"></a>A.4. Installing Keras</h2>
+
+  <p class="noind">You can install Keras from PyPI:</p>
+  <pre class="calibre4" id="PLd0e33235">$ sudo pip install keras</pre>
+
+  <p class="noind">Alternatively, you can install Keras from GitHub. Doing so will allow you to access the keras/examples folder, which contains many example scripts for you to learn from:</p>
+  <pre class="calibre4" id="PLd0e33244">$ git clone https://github.com/fchollet/keras
+$ cd keras
+$ sudo python setup.py install</pre>
+
+  <p class="noind">You can now try to run a Keras script, such as this MNIST example:</p>
+  <pre class="calibre4" id="PLd0e33253">python examples/mnist_cnn.py</pre>
+
+  <p class="noind">Note that running this example to completion may take a few minutes, so feel free to force-quit it (Ctrl-C) once you’ve verified that it’s working normally.</p>
+
+  <p class="noind">After you’ve run Keras at least once, the Keras configuration file can be found at ~/.keras/keras.json. You can edit it to select the backend that Keras runs on: <kbd class="calibre24">tensorflow</kbd>, <kbd class="calibre24">theano</kbd>, or <kbd class="calibre24">cntk</kbd>. Your configuration file should like this:</p>
+  <pre class="calibre4" id="PLd0e33276">{
+    "image_data_format": "channels_last",
+    "epsilon": 1e-07,
+    "floatx": "float32",
+    "backend": "tensorflow"
+}</pre>
+
+  <p class="noind">While the Keras script examples/mnist_cnn.py is running, you can monitor GPU utilization in a different shell window:</p>
+  <pre class="calibre4" id="PLd0e33285">$ watch -n 5 NVIDIA-smi -a --display=utilization</pre>
+
+  <p class="noind">You’re all set! Congratulations—you can now begin building deep-learning applications.</p>
+</body>
+</html>

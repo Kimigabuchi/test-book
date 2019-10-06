@@ -1,0 +1,29 @@
+/* cambria math */
+@font-face {
+  font-family: 'Cambria Math';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Cambria Math'), local('Cambria Math Regular'),
+       url('/fonts/Cambria.woff') format('woff'); /* Modern Browsers */
+  font-display: fallback;
+}
+
+/* liberation mono */
+@font-face {
+  font-family: 'Liberation Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Liberation Mono'), local('Liberation Mono Regular'),
+       url('/fonts/LiberationMono.woff') format('woff'); /* Modern Browsers */
+  font-display: fallback;
+}
+
+/* franklin gothik mono */
+@font-face {
+  font-family: 'Franklin Gothic Medium';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Franklin Gothic Medium'), local('Franklin Gothic Medium Regular'),
+       url('/fonts/FranklinGothicMedium.ttf') format('ttf'); /* Modern Browsers */
+  font-display: fallback;
+}

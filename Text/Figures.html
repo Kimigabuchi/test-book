@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Deep Learning with Python</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../Styles/stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../Styles/page_styles.css" rel="stylesheet" type="text/css"/>
+</head>
+  <body class="calibre">
+  <h1 class="part" id="lof">List of Figures</h1>
+
+  <p class="noind">Chapter 1. What is deep learning?</p>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/01.html#ch01fig01" class="calibre13">Figure 1.1. Artificial intelligence, machine learning, and deep learning</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/01.html#ch01fig02" class="calibre13">Figure 1.2. Machine learning: a new programming paradigm</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/01.html#ch01fig03" class="calibre13">Figure 1.3. Some sample data</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/01.html#ch01fig04" class="calibre13">Figure 1.4. Coordinate change</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/01.html#ch01fig05" class="calibre13">Figure 1.5. A deep neural network for digit classification</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/01.html#ch01fig06" class="calibre13">Figure 1.6. Deep representations learned by a digit-classification model</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/01.html#ch01fig07" class="calibre13">Figure 1.7. A neural network is parameterized by its weights.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/01.html#ch01fig08" class="calibre13">Figure 1.8. A loss function measures the quality of the network’s output.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/01.html#ch01fig09" class="calibre13">Figure 1.9. The loss score is used as a feedback signal to adjust the weights.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/01.html#ch01fig10" class="calibre13">Figure 1.10. A decision boundary</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/01.html#ch01fig11" class="calibre13">Figure 1.11. A decision tree: the parameters that are learned are the questions about the data. A question could be, for instance, “Is coefficient 2 in the data greater than 3.5?”</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <p class="noind">Chapter 2. Before we begin: the mathematical building blocks of neural networks</p>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/02.html#ch02fig01" class="calibre13">Figure 2.1. MNIST sample digits</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig02" class="calibre13">Figure 2.2. The fourth sample in our dataset</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig03" class="calibre13">Figure 2.3. A 3D timeseries data tensor</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig04" class="calibre13">Figure 2.4. A 4D image data tensor (channels-first convention)</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig05" class="calibre13">Figure 2.5. Matrix dot-product box diagram</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig06" class="calibre13">Figure 2.6. A point in a 2D space</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig07" class="calibre13">Figure 2.7. A point in a 2D space pictured as an arrow</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig08" class="calibre13">Figure 2.8. Geometric interpretation of the sum of two vectors</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig09" class="calibre13">Figure 2.9. Uncrumpling a complicated manifold of data</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig10" class="calibre13">Figure 2.10. Derivative of f in p</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig11" class="calibre13">Figure 2.11. SGD down a 1D loss curve (one learnable parameter)</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig12" class="calibre13">Figure 2.12. Gradient descent down a 2D loss surface (two learnable parameters)</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/02.html#ch02fig13" class="calibre13">Figure 2.13. A local minimum and a global minimum</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <p class="noind">Chapter 3. Getting started with neural networks</p>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/03.html#ch03fig01" class="calibre13">Figure 3.1. Relationship between the network, layers, loss function, and optimizer</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig02" class="calibre13">Figure 3.2. Google web search interest for different deep-learning frameworks over time</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig03" class="calibre13">Figure 3.3. The deep-learning software and hardware stack</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig04" class="calibre13">Figure 3.4. The rectified linear unit function</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig05" class="calibre13">Figure 3.5. The sigmoid function</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig06" class="calibre13">Figure 3.6. The three-layer network</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig07" class="calibre13">Figure 3.7. Training and validation loss</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig08" class="calibre13">Figure 3.8. Training and validation accuracy</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig09" class="calibre13">Figure 3.9. Training and validation loss</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig10" class="calibre13">Figure 3.10. Training and validation accuracy</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig11" class="calibre13">Figure 3.11. 3-fold cross-validation</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig12" class="calibre13">Figure 3.12. Validation MAE by epoch</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/03.html#ch03fig13" class="calibre13">Figure 3.13. Validation MAE by epoch, excluding the first 10 data points</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <p class="noind">Chapter 4. Fundamentals of machine learning</p>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/04.html#ch04fig01" class="calibre13">Figure 4.1. Simple hold-out validation split</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/04.html#ch04fig02" class="calibre13">Figure 4.2. Three-fold validation</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/04.html#ch04fig03" class="calibre13">Figure 4.3. Feature engineering for reading the time on a clock</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/04.html#ch04fig04" class="calibre13">Figure 4.4. Effect of model capacity on validation loss: trying a smaller model</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/04.html#ch04fig05" class="calibre13">Figure 4.5. Effect of model capacity on validation loss: trying a bigger model</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/04.html#ch04fig06" class="calibre13">Figure 4.6. Effect of model capacity on training loss: trying a bigger model</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/04.html#ch04fig07" class="calibre13">Figure 4.7. Effect of L2 weight regularization on validation loss</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/04.html#ch04fig08" class="calibre13">Figure 4.8. Dropout applied to an activation matrix at training time, with rescaling happening during training. At test time, the activation matrix is unchanged.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/04.html#ch04fig09" class="calibre13">Figure 4.9. Effect of dropout on validation loss</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <p class="noind">Chapter 5. Deep learning for computer vision</p>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/05.html#ch05fig01" class="calibre13">Figure 5.1. Images can be broken into local patterns such as edges, textures, and so on.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig02" class="calibre13">Figure 5.2. The visual world forms a spatial hierarchy of visual modules: hyperlocal edges combine into local objects such as eyes or ears, which combine into high-level concepts such as “cat.”</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig03" class="calibre13">Figure 5.3. The concept of a response map: a 2D map of the presence of a pattern at different locations in an input</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig04" class="calibre13">Figure 5.4. How convolution works</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig05" class="calibre13">Figure 5.5. Valid locations of 3 × 3 patches in a 5 × 5 input feature map</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig06" class="calibre13">Figure 5.6. Padding a 5 × 5 input in order to be able to extract 25 3 × 3 patches</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig07" class="calibre13">Figure 5.7. 3 × 3 convolution patches with 2 × 2 strides</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig08" class="calibre13">Figure 5.8. Samples from the Dogs vs. Cats dataset. Sizes weren’t modified: the samples are heterogeneous in size, appearance, and so on.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig09" class="calibre13">Figure 5.9. augmenting dataconvnets (convolutional neural networks)training on small datasetsusing data augmentationdataaugmentingtrainingconvnets on small datasetsusing data augmentationTraining and validation accuracy</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig10" class="calibre13">Figure 5.10. Training and validation loss</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig11" class="calibre13">Figure 5.11. Generation of cat pictures via random data augmentation</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig12" class="calibre13">Figure 5.12. Training and validation accuracy with data augmentation</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig13" class="calibre13">Figure 5.13. Training and validation loss with data augmentation</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig14" class="calibre13">Figure 5.14. Swapping classifiers while keeping the same convolutional base</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig15" class="calibre13">Figure 5.15. Training and validation accuracy for simple feature extraction</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig16" class="calibre13">Figure 5.16. Training and validation loss for simple feature extraction</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig17" class="calibre13">Figure 5.17. Training and validation accuracy for feature extraction with data augmentation</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig18" class="calibre13">Figure 5.18. Training and validation loss for feature extraction with data augmentation</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig19" class="calibre13">Figure 5.19. layersunfreezingunfreezing layersFine-tuning the last convolutional block of the VGG16 network</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig20" class="calibre13">Figure 5.20. Training and validation accuracy for fine-tuning</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig21" class="calibre13">Figure 5.21. Training and validation loss for fine-tuning</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig22" class="calibre13">Figure 5.22. Smoothed curves for training and validation accuracy for fine-tuning</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig23" class="calibre13">Figure 5.23. Smoothed curves for training and validation loss for fine-tuning</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig24" class="calibre13">Figure 5.24. The test cat picture</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig25" class="calibre13">Figure 5.25. Fourth channel of the activation of the first layer on the test cat picture</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig26" class="calibre13">Figure 5.26. Seventh channel of the activation of the first layer on the test cat picture</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig27" class="calibre13">Figure 5.27. information distillation pipelineEvery channel of every layer activation on the test cat picture</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig28" class="calibre13">Figure 5.28. Left: attempts to draw a bicycle from memory. Right: what a schematic bicycle should look like.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig29" class="calibre13">Figure 5.29. Pattern that the zeroth channel in layer block3_conv1 responds to maximally</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig30" class="calibre13">Figure 5.30. Filter patterns for layer block1_conv1</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig31" class="calibre13">Figure 5.31. Filter patterns for layer block2_conv1</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig32" class="calibre13">Figure 5.32. float32Filter patterns for layer block3_conv1</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig33" class="calibre13">Figure 5.33. Filter patterns for layer block4_conv1</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig34" class="calibre13">Figure 5.34. Test picture of African elephants</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig35" class="calibre13">Figure 5.35. African elephant class activation heatmap over the test picture</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/05.html#ch05fig36" class="calibre13">Figure 5.36. Superimposing the class activation heatmap on the original picture</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <p class="noind">Chapter 6. Deep learning for text and sequences</p>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/06.html#ch06fig01" class="calibre13">Figure 6.1. From text to tokens to vectors</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig02" class="calibre13">Figure 6.2. Whereas word representations obtained from one-hot encoding or hashing are sparse, high-dimensional, and hardcoded, word embeddings are dense, relatively lowdimensional, and learned from data.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig03" class="calibre13">Figure 6.3. A toy example of a word-embedding space</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig04" class="calibre13">Figure 6.4. The embedding layer</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig05" class="calibre13">Figure 6.5. Training and validation loss when using pretrained word embeddings</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig06" class="calibre13">Figure 6.6. Training and validation accuracy when using pretrained word embeddings</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig07" class="calibre13">Figure 6.7. Training and validation loss without using pretrained word embeddings</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig08" class="calibre13">Figure 6.8. Training and validation accuracy without using pretrained word embeddings</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig09" class="calibre13">Figure 6.9. A recurrent network: a network with a loop</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig10" class="calibre13">Figure 6.10. A simple RNN, unrolled over time</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig11" class="calibre13">Figure 6.11. Training and validation loss on IMDB with simplernn</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig12" class="calibre13">Figure 6.12. Training and validation accuracy on IMDB with simplernn</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig13" class="calibre13">Figure 6.13. The starting point of an lstm layer: a simplernn</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig14" class="calibre13">Figure 6.14. Going from a simplernn to an lstm: adding a carry track</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig15" class="calibre13">Figure 6.15. Anatomy of an lstm</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig16" class="calibre13">Figure 6.16. Training and validation loss on IMDB with LSTM</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig17" class="calibre13">Figure 6.17. Training and validation accuracy on IMDB with LSTM</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig18" class="calibre13">Figure 6.18. Temperature over the full temporal range of the dataset (°C)</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig19" class="calibre13">Figure 6.19. Temperature over the first 10 days of the dataset (°C)</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig20" class="calibre13">Figure 6.20. Training and validation loss on the Jena temperature-forecasting task with a simple, densely connected network</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig21" class="calibre13">Figure 6.21. Training and validation loss on the Jena temperature-forecasting task with a GRU</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig22" class="calibre13">Figure 6.22. Training and validation loss on the Jena temperature-forecasting task with a dropout-regularized GRU</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig23" class="calibre13">Figure 6.23. Training and validation loss on the Jena temperature-forecasting task with a stacked GRU network</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig24" class="calibre13">Figure 6.24. Training and validation loss on the Jena temperature-forecasting task with a GRU trained on reversed sequences</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig25" class="calibre13">Figure 6.25. How a bidirectional RNN layer works</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig26" class="calibre13">Figure 6.26. How 1D convolution works: each output timestep is obtained from a temporal patch in the input sequence.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig27" class="calibre13">Figure 6.27. Training and validation loss on IMDB with a simple 1D convnet</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig28" class="calibre13">Figure 6.28. Training and validation accuracy on IMDB with a simple 1D convnet</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig29" class="calibre13">Figure 6.29. Training and validation loss on the Jena temperature-forecasting task with a simple 1D convnet</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig30" class="calibre13">Figure 6.30. Combining a 1D convnet and an RNN for processing long sequences</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/06.html#ch06fig31" class="calibre13">Figure 6.31. Training and validation loss on the Jena temperature-forecasting task with a 1D convnet followed by a gru</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <p class="noind">Chapter 7. Advanced deep-learning best practices</p>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/07.html#ch07fig01" class="calibre13">Figure 7.1. A sequential model: a linear stack of layers</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig02" class="calibre13">Figure 7.2. A multi-input model</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig03" class="calibre13">Figure 7.3. A multi-output (or multihead) model</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig04" class="calibre13">Figure 7.4. An Inception module: a subgraph of layers with several parallel convolutional branches</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig05" class="calibre13">Figure 7.5. A residual connection: reinjection of prior information downstream via feature-map addition</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig06" class="calibre13">Figure 7.6. A question-answering model</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig07" class="calibre13">Figure 7.7. A social media model with three heads</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig08" class="calibre13">Figure 7.8. An Inception module</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig09" class="calibre13">Figure 7.9. The loop of progress</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig10" class="calibre13">Figure 7.10. TensorBoard: metrics monitoring</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig11" class="calibre13">Figure 7.11. TensorBoard: activation histograms</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig12" class="calibre13">Figure 7.12. TensorBoard: interactive 3D word-embedding visualization</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig13" class="calibre13">Figure 7.13. TensorBoard: TensorFlow graph visualization</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig14" class="calibre13">Figure 7.14. A model plot as a graph of layers, generated with plot_model</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig15" class="calibre13">Figure 7.15. A model plot with shape information</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/07.html#ch07fig16" class="calibre13">Figure 7.16. Depthwise separable convolution: a depthwise convolution followed by a pointwise convolution</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <p class="noind">Chapter 8. Generative deep learning</p>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/08.html#ch08fig01" class="calibre13">Figure 8.1. The process of character-by-character text generation using a language model</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig02" class="calibre13">Figure 8.2. Different reweightings of one probability distribution. Low temperature = more deterministic, high temperature = more random.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig03" class="calibre13">Figure 8.3. Example of a DeepDream output image</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig04" class="calibre13">Figure 8.4. The DeepDream process: successive scales of spatial processing (octaves) and detail reinjection upon upscaling</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig05" class="calibre13">Figure 8.5. Running the DeepDream code on an example image</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig06" class="calibre13">Figure 8.6. Trying a range of DeepDream configurations on an example image</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig07" class="calibre13">Figure 8.7. A style transfer example</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig08" class="calibre13">Figure 8.8. autoencoders VAEs (variational autoencoders).GANs (generative adversarial networks)generative deep learninggenerating images with variational autoencodersgenerative deep learninggenerating images with variational autoencoderssampling from latent spaces of imagesimagesgenerating with variational autoencodersimagesgenerating with variational autoencodersoverviewimagessampling from latent spaces oflatent spacesof images, sampling fromsamplingfrom latent spaces of imagesVAEs (variational autoencoders), generating images withVAEs (variational autoencoders), generating images withsampling from latent spaces of imagesSome example results</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig09" class="calibre13">Figure 8.9. Learning a latent vector space of images, and using it to sample new images</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig10" class="calibre13">Figure 8.10. A continuous space of faces generated by Tom White using VAEs</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig11" class="calibre13">Figure 8.11. The smile vector</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig12" class="calibre13">Figure 8.12. An autoencoder: mapping an input x to a compressed representation and then decoding it back as x'</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig13" class="calibre13">Figure 8.13. A VAE maps an image to two vectors, z_mean and z_log_sigma, which define a probability distribution over the latent space, used to sample a latent point to decode.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig14" class="calibre13">Figure 8.14. Grid of digits decoded from the latent space</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig15" class="calibre13">Figure 8.15. A generator transforms random latent vectors into images, and a discriminator seeks to tell real images from generated ones. The generator is trained to fool the discriminator.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig16" class="calibre13">Figure 8.16. Latent space dwellers. Images generated by Mike Tyka using a multistaged GAN trained on a dataset of faces (www.miketyka.com).</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig17" class="calibre13">Figure 8.17. Checkerboard artifacts caused by mismatching strides and kernel sizes, resulting in unequal pixel-space coverage: one of the many gotchas of GANs</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/08.html#ch08fig18" class="calibre13">Figure 8.18. Play the discriminator: in each row, two images were dreamed up by the GAN, and one image comes from the training set. Can you tell them apart? (Answers: the real images in each column are middle, top, bottom, middle.)</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <p class="noind">Chapter 9. Conclusions</p>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/09.html#ch09fig01" class="calibre13">Figure 9.1. Failure of an image-captioning system based on deep learning</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/09.html#ch09fig02" class="calibre13">Figure 9.2. An adversarial example: imperceptible changes in an image can upend a model’s classification of the image.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/09.html#ch09fig03" class="calibre13">Figure 9.3. Current machine-learning models: like a dim image in a mirror</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/09.html#ch09fig04" class="calibre13">Figure 9.4. Local generalization vs. extreme generalization</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/09.html#ch09fig05" class="calibre13">Figure 9.5. A learned program relying on both geometric primitives (pattern recognition, intuition) and algorithmic primitives (reasoning, search, memory)</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/09.html#ch09fig06" class="calibre13">Figure 9.6. A meta-learner capable of quickly developing task-specific models using reusable primitives (both algorithmic and geometric), thus achieving extreme generalization</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <p class="noind">Appendix B. Running Jupyter notebooks on an EC2 GPU instance</p>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/B.html#app02fig01" class="calibre13">Figure B.1. The EC2 control panel</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/B.html#app02fig02" class="calibre13">Figure B.2. The EC2 AMI Marketplace</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/B.html#app02fig03" class="calibre13">Figure B.3. The EC2 Deep Learning AMI</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/B.html#app02fig04" class="calibre13">Figure B.4. The p2.xlarge instance</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/B.html#app02fig05" class="calibre13">Figure B.5. Configure a new security group.</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/B.html#app02fig06" class="calibre13">Figure B.6. Connection instructions</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/B.html#app02fig07" class="calibre13">Figure B.7. A safety warning you can ignore</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/B.html#app02fig08" class="calibre13">Figure B.8. The Jupyter dashboard</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/B.html#app02fig09" class="calibre13">Figure B.9. Create a new notebook.</a><br class="calibre14"/></p>
+  </blockquote>
+</body>
+</html>

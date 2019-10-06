@@ -1,0 +1,1798 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Deep Learning with Python</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../Styles/stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../Styles/page_styles.css" rel="stylesheet" type="text/css"/>
+</head>
+  <body class="calibre">
+  <h1 class="part" id="ch06">Chapter 6. <a class="calibre3" id="ch06__title"></a>Deep learning for text and sequences</h1>
+
+  <p class="noind1">This chapter covers</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Preprocessing text data into useful representations</li>
+
+    <li class="calibre17">Working with recurrent neural networks</li>
+
+    <li class="calibre17">Using 1D convnets for sequence processing</li>
+  </ul>
+
+  <p class="noind">This chapter explores deep-learning models that can process text (understood as sequences of words or sequences of characters), timeseries, and sequence data in general. The two fundamental deep-learning algorithms for sequence processing are <i class="calibre5">recurrent neural networks</i> and <i class="calibre5">1D convnets</i>, the one-dimensional version of the 2D convnets that we covered in the previous chapters. We’ll discuss both of these approaches in this chapter.</p>
+
+  <p class="noind">Applications of these algorithms include the following:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Document classification and timeseries classification, such as identifying the topic of an article or the author of a book</li>
+
+    <li class="calibre17">Timeseries comparisons, such as estimating how closely related two documents or two stock tickers are</li>
+
+    <li class="calibre17">Sequence-to-sequence learning, such as decoding an English sentence into French</li>
+
+    <li class="calibre17">Sentiment analysis, such as classifying the sentiment of tweets or movie reviews as positive or negative</li>
+
+    <li class="calibre17">Timeseries forecasting, such as predicting the future weather at a certain location, given recent weather data</li>
+  </ul>
+
+  <p class="noind">This chapter’s examples focus on two narrow tasks: sentiment analysis on the IMDB dataset, a task we approached earlier in the book, and temperature forecasting. But the techniques demonstrated for these two tasks are relevant to all the applications just listed, and many more.</p>
+
+  <h2 class="head" id="ch06lev1sec1"><a class="calibre3" id="ch06lev1sec1__title"></a>6.1. Working with text data</h2>
+
+  <p class="noind"><a id="iddle1719"></a><a id="iddle1962"></a><a id="iddle1988"></a><a id="iddle2052"></a>Text is one of the most widespread forms of sequence data. It can be understood as either a sequence of characters or a sequence of words, but it’s most common to work at the level of words. The deep-learning sequence-processing models introduced in the following sections can use text to produce a basic form of natural-l-anguage understanding, sufficient for applications including document classification, sentiment analysis, author identification, and even question-answering (QA) (in a constrained context). Of course, keep in mind throughout this chapter that none of these deep-learning models truly understand text in a human sense; rather, these models can map the statistical structure of written language, which is sufficient to solve many simple textual tasks. Deep learning for natural-language processing is pattern recognition applied to words, sentences, and paragraphs, in much the same way that computer vision is pattern recognition applied to pixels.</p>
+
+  <p class="noind">Like all other neural networks, deep-learning models don’t take as input raw text: they only work with numeric tensors. <i class="calibre5">Vectorizing</i> text is the process of transforming text into numeric tensors. This can be done in multiple ways:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Segment text into words, and transform each word into a vector.</li>
+
+    <li class="calibre17">Segment text into characters, and transform each character into a vector.</li>
+
+    <li class="calibre17">Extract n-grams of words or characters, and transform each n-gram into a vector. <i class="calibre5">N-grams</i> are overlapping groups of multiple consecutive words or characters.</li>
+  </ul>
+
+  <p class="noind">Collectively, the different units into which you can break down text (words, characters, or n-grams) are called <i class="calibre5">tokens</i>, and breaking text into such tokens is called <i class="calibre5">tokenization</i>. All text-vectorization processes consist of applying some tokenization scheme and then associating numeric vectors with the generated tokens. These vectors, packed into sequence tensors, are fed into deep neural networks. There are multiple ways to associate a vector with a token. In this section, I’ll present two major ones: <i class="calibre5">one-hot encoding</i> of tokens, and <i class="calibre5">token embedding</i> (typically used exclusively for words, and called <i class="calibre5">word embedding</i>). The remainder of this section explains these techniques and shows how to use them to go from raw text to a Numpy tensor that you can send to a Keras network.</p>
+
+  <p class="notetitle" id="ch06fig01">Figure 6.1. <a id="ch06fig01__title"></a>From text to tokens to vectors</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig01.jpg"/></p>
+
+  <p class="noind"></p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch06sb01">Understanding n-grams and bag-of-words</b>
+
+    <p class="noind"><a id="iddle1057"></a><a id="iddle1058"></a><a id="iddle1059"></a><a id="iddle1738"></a><a id="iddle1739"></a><a id="iddle1965"></a>Word n-grams are groups of <i class="calibre5">N</i> (or fewer) consecutive words that you can extract from a sentence. The same concept may also be applied to characters instead of words.</p>
+
+    <p class="noind">Here’s a simple example. Consider the sentence “The cat sat on the mat.” It may be decomposed into the following set of 2-grams:</p>
+    <pre class="calibre4" id="PLd0e17980">{"The", "The cat", "cat", "cat sat", "sat",
+  "sat on", "on", "on the", "the", "the mat", "mat"}</pre>
+
+    <p class="noind">It may also be decomposed into the following set of 3-grams:</p>
+    <pre class="calibre4" id="PLd0e17989">{"The", "The cat", "cat", "cat sat", "The cat sat",
+  "sat", "sat on", "on", "cat sat on", "on the", "the",
+  "sat on the", "the mat", "mat", "on the mat"}</pre>
+
+    <p class="noind">Such a set is called a <i class="calibre5">bag-of-2-grams</i> or <i class="calibre5">bag-of-3-grams</i>, respectively. The term <i class="calibre5">bag</i> here refers to the fact that you’re dealing with a <i class="calibre5">set</i> of tokens rather than a list or sequence: the tokens have no specific order. This family of tokenization methods is called <i class="calibre5">bag-of-words</i>.</p>
+
+    <p class="noind">Because bag-of-words isn’t an order-preserving tokenization method (the tokens generated are understood as a set, not a sequence, and the general structure of the sentences is lost), it tends to be used in shallow language-processing models rather than in deep-learning models. Extracting n-grams is a form of feature engineering, and deep learning does away with this kind of rigid, brittle approach, replacing it with hierarchical feature learning. One-dimensional convnets and recurrent neural networks, introduced later in this chapter, are capable of learning representations for groups of words and characters without being explicitly told about the existence of such groups, by looking at continuous word or character sequences. For this reason, we won’t cover n-grams any further in this book. But do keep in mind that they’re a powerful, unavoidable feature-engineering tool when using lightweight, shallow text-processing models such as logistic regression and random forests.</p>
+  </div>
+  <hr class="calibre25"/>
+
+  <h3 class="head1" id="ch06lev2sec1">6.1.1. <a id="ch06lev2sec1__title"></a>One-hot encoding of words and characters</h3>
+
+  <p class="noind">One-hot encoding is the most common, most basic way to turn a token into a vector. You saw it in action in the initial IMDB and Reuters examples in <a href="../Text/03.html#ch03">chapter 3</a> (done with words, in that case). It consists of associating a unique integer index with every word and then turning this integer index <i class="calibre5">i</i> into a binary vector of size <i class="calibre5">N</i> (the size of the vocabulary); the vector is all zeros except for the <i class="calibre5">i</i>th entry, which is 1.</p>
+
+  <p class="noind">Of course, one-hot encoding can be done at the character level, as well. To unambiguously drive home what one-hot encoding is and how to implement it, <a href="#ch06ex01">listings 6.1</a> and <a href="#ch06ex02">6.2</a> show two toy examples: one for words, the other for characters.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch06ex01">Listing 6.1. <a id="ch06ex01__title"></a>Word-level one-hot encoding (toy example)</p>
+  <pre class="calibre4" id="PLd0e18051">import numpy as np
+
+samples = ['The cat sat on the mat.', 'The dog ate my homework.']      <span class="cambriamathin">❶</span>
+
+token_index = {}                                                       <span class="cambriamathin">❷</span>
+for sample in samples:
+    for word in sample.split():                                        <span class="cambriamathin">❸</span>
+        if word not in token_index:
+            token_index[word] = len(token_index) + 1                   <span class="cambriamathin">❹</span>
+
+max_length = 10                                                        <span class="cambriamathin">❺</span>
+
+results = np.zeros(shape=(len(samples),
+                          max_length,
+                          max(token_index.values()) + 1))              <span class="cambriamathin">❻</span>
+for i, sample in enumerate(samples):
+    for j, word in list(enumerate(sample.split()))[:max_length]:
+        index = token_index.get(word)
+        results[i, j, index] = 1.</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Initial data: one entry per sample (in this example, a sample is a sentence, but it could be an entire document)</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Builds an index of all tokens in the data</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Tokenizes the samples via the split method. In real life, you’d also strip punctuation and special characters from the samples.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Assigns a unique index to each unique word. Note that you don’t attribute index 0 to anything.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Vectorizes the samples. You’ll only consider the first max_length words in each sample.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> This is where you store the results.</p>
+  </div>
+
+  <p class="notetitle" id="ch06ex02">Listing 6.2. <a id="ch06ex02__title"></a>Character-level one-hot encoding (toy example)</p>
+  <pre class="calibre4" id="PLd0e18135">import string
+
+samples = ['The cat sat on the mat.', 'The dog ate my homework.']
+characters = string.printable                                           <span class="cambriamathin">❶</span>
+token_index = dict(zip(range(1, len(characters) + 1), characters))
+
+max_length = 50
+results = np.zeros((len(samples), max_length, max(token_index.keys()) + 1))
+for i, sample in enumerate(samples):
+    for j, character in enumerate(sample):
+        index = token_index.get(character)
+        results[i, j, index] = 1.</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> All printable ASCII characters</p>
+  </div>
+
+  <p class="noind">Note that Keras has built-in utilities for doing one-hot encoding of text at the word level or character level, starting from raw text data. You should use these utilities, because they take care of a number of important features such as stripping special characters from strings and only taking into account the <i class="calibre5">N</i> most common words in your dataset (a common restriction, to avoid dealing with very large input vector spaces).</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch06ex03">Listing 6.3. <a id="ch06ex03__title"></a>Using Keras for word-level one-hot encoding</p>
+  <pre class="calibre4" id="PLd0e18167">from keras.preprocessing.text import Tokenizer
+
+samples = ['The cat sat on the mat.', 'The dog ate my homework.']
+
+tokenizer = Tokenizer(num_words=1000)                                   <span class="cambriamathin">❶</span>
+tokenizer.fit_on_texts(samples)                                         <span class="cambriamathin">❷</span>
+
+sequences = tokenizer.texts_to_sequences(samples)                       <span class="cambriamathin">❸</span>
+
+one_hot_results = tokenizer.texts_to_matrix(samples, mode='binary')     <span class="cambriamathin">❹</span>
+
+word_index = tokenizer.word_index                                       <span class="cambriamathin">❺</span>
+print('Found %s unique tokens.' % len(word_index))</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1372"></a><span class="cambriamathin1">❶</span> Creates a tokenizer, configured to only take into account the 1,000 most common words</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Builds the word index</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Builds the word index</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> You could also directly get the one-hot binary representations. Vectorization modes other than one-hot encoding are supported by this tokenizer.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> How you can recover the word index that was computed</p>
+  </div>
+
+  <p class="noind">A variant of one-hot encoding is the so-called <i class="calibre5">one-hot hashing trick</i>, which you can use when the number of unique tokens in your vocabulary is too large to handle explicitly. Instead of explicitly assigning an index to each word and keeping a reference of these indices in a dictionary, you can hash words into vectors of fixed size. This is typically done with a very lightweight hashing function. The main advantage of this method is that it does away with maintaining an explicit word index, which saves memory and allows online encoding of the data (you can generate token vectors right away, before you’ve seen all of the available data). The one drawback of this approach is that it’s susceptible to <i class="calibre5">hash collisions</i>: two different words may end up with the same hash, and subsequently any machine-learning model looking at these hashes won’t be able to tell the difference between these words. The likelihood of hash collisions decreases when the dimensionality of the hashing space is much larger than the total number of unique tokens being hashed.</p>
+
+  <p class="notetitle" id="ch06ex04">Listing 6.4. <a id="ch06ex04__title"></a>Word-level one-hot encoding with hashing trick (toy example)</p>
+  <pre class="calibre4" id="PLd0e18253">samples = ['The cat sat on the mat.', 'The dog ate my homework.']
+
+dimensionality = 1000                                                 <span class="cambriamathin">❶</span>
+max_length = 10
+
+results = np.zeros((len(samples), max_length, dimensionality))
+for i, sample in enumerate(samples):
+    for j, word in list(enumerate(sample.split()))[:max_length]:
+        index = abs(hash(word)) % dimensionality                      <span class="cambriamathin">❷</span>
+        results[i, j, index] = 1.</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Stores the words as vectors of size 1,000. If you have close to 1,000 words (or more), you’ll see many hash collisions, which will decrease the accuracy of this encoding method.</p>
+
+    <p class="codeannotation"><a id="iddle1793"></a><a id="iddle1966"></a><a id="iddle2073"></a><a id="iddle2083"></a><span class="cambriamathin1">❷</span> Hashes the word into a random integer index between 0 and 1,000</p>
+  </div>
+
+  <h3 class="head1" id="ch06lev2sec2">6.1.2. <a id="ch06lev2sec2__title"></a>Using word embeddings</h3>
+
+  <p class="noind">Another popular and powerful way to associate a vector with a word is the use of dense <i class="calibre5">word vectors</i>, also called <i class="calibre5">word embeddings</i>. Whereas the vectors obtained through one-hot encoding are binary, sparse (mostly made of zeros), and very high-dimensional (same dimensionality as the number of words in the vocabulary), word embeddings are low-dimensional floating-point vectors (that is, dense vectors, as opposed to sparse vectors); see <a href="#ch06fig02">figure 6.2</a>. Unlike the word vectors obtained via one-hot encoding, word embeddings are learned from data. It’s common to see word embeddings that are 256-dimensional, 512-dimensional, or 1,024-dimensional when dealing with very large vocabularies. On the other hand, one-hot encoding words generally leads to vectors that are 20,000-dimensional or greater (capturing a vocabulary of 20,000 tokens, in this case). So, word embeddings pack more information into far fewer dimensions.</p>
+
+  <p class="notetitle" id="ch06fig02">Figure 6.2. <a id="ch06fig02__title"></a>Whereas word representations obtained from one-hot encoding or hashing are sparse, high-dimensional, and hardcoded, word embeddings are dense, relatively lowdimensional, and learned from data.</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig02.jpg"/></p>
+
+  <p class="noind">There are two ways to obtain word embeddings:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Learn word embeddings jointly with the main task you care about (such as document classification or sentiment prediction). In this setup, you start with random word vectors and then learn word vectors in the same way you learn the weights of a neural network.</li>
+
+    <li class="calibre17">Load into your model word embeddings that were precomputed using a different machine-learning task than the one you’re trying to solve. These are called <i class="calibre5">pretrained word embeddings</i>.</li>
+  </ul>
+
+  <p class="noind">Let’s look at both.</p>
+
+  <p class="notetitle" id="ch06lev3sec1"><a id="ch06lev3sec1__title"></a>Learning word embeddings with the Embedding layer</p>
+
+  <p class="noind"><a id="iddle1259"></a><a id="iddle1969"></a><a id="iddle2077"></a><a id="iddle2085"></a>The simplest way to associate a dense vector with a word is to choose the vector at random. The problem with this approach is that the resulting embedding space has no structure: for instance, the words <i class="calibre5">accurate</i> and <i class="calibre5">exact</i> may end up with completely different embeddings, even though they’re interchangeable in most sentences. It’s difficult for a deep neural network to make sense of such a noisy, unstructured embedding space.</p>
+
+  <p class="noind">To get a bit more abstract, the geometric relationships between word vectors should reflect the semantic relationships between these words. Word embeddings are meant to map human language into a geometric space. For instance, in a reasonable embedding space, you would expect synonyms to be embedded into similar word vectors; and in general, you would expect the geometric distance (such as L2 distance) between any two word vectors to relate to the semantic distance between the associated words (words meaning different things are embedded at points far away from each other, whereas related words are closer). In addition to distance, you may want specific <i class="calibre5">directions</i> in the embedding space to be meaningful. To make this clearer, let’s look at a concrete example.</p>
+
+  <p class="noind">In <a href="#ch06fig03">figure 6.3</a>, four words are embedded on a 2D plane: <i class="calibre5">cat</i>, <i class="calibre5">dog</i>, <i class="calibre5">wolf</i>, and <i class="calibre5">tiger</i>. With the vector representations we chose here, some semantic relationships between these words can be encoded as geometric transformations. For instance, the same vector allows us to go from <i class="calibre5">cat</i> to <i class="calibre5">tiger</i> and from <i class="calibre5">dog</i> to <i class="calibre5">wolf</i>: this vector could be interpreted as the “from pet to wild animal” vector. Similarly, another vector lets us go from <i class="calibre5">dog</i> to <i class="calibre5">cat</i> and from <i class="calibre5">wolf</i> to <i class="calibre5">tiger</i>, which could be interpreted as a “from canine to feline” vector.</p>
+
+  <p class="notetitle" id="ch06fig03">Figure 6.3. <a id="ch06fig03__title"></a>A toy example of a word-embedding space</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig03.jpg"/></p>
+
+  <p class="noind">In real-world word-embedding spaces, common examples of meaningful geometric transformations are “gender” vectors and “plural” vectors. For instance, by adding a “female” vector to the vector “king,” we obtain the vector “queen.” By adding a “plural” vector, we obtain “kings.” Word-embedding spaces typically feature thousands of such interpretable and potentially useful vectors.</p>
+
+  <p class="noind">Is there some ideal word-embedding space that would perfectly map human language and could be used for any natural-language-processing task? Possibly, but we have yet to compute anything of the sort. Also, there is no such a thing as <i class="calibre5">human language</i>—there are many different languages, and they aren’t isomorphic, because a language is the reflection of a specific culture and a specific context. But more pragmatically, what makes a good word-embedding space depends heavily on your task: the perfect word-embedding space for an English-language movie-review sentiment-analysis model may look different from the perfect embedding space for an English-language legal--document-classification model, because the importance of certain semantic relationships varies from task to task.</p>
+
+  <p class="noind">It’s thus reasonable to <i class="calibre5">learn</i> a new embedding space with every new task. Fortunately, backpropagation makes this easy, and Keras makes it even easier. It’s about learning the weights of a layer: the <kbd class="calibre24">Embedding</kbd> layer.</p>
+
+  <p class="notetitle" id="ch06ex05">Listing 6.5. <a id="ch06ex05__title"></a>Instantiating an <kbd class="calibre24">Embedding</kbd> layer</p>
+  <pre class="calibre4" id="PLd0e18494">from keras.layers import Embedding
+
+embedding_layer = Embedding(1000, 64)           <span class="cambriamathin">❶</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> The Embedding layer takes at least two arguments: the number of possible tokens (here, 1,000: 1 + maximum word index) and the dimensionality of the embeddings (here, 64).</p>
+  </div>
+
+  <p class="noind">The <kbd class="calibre24">Embedding</kbd> layer is best understood as a dictionary that maps integer indices (which stand for specific words) to dense vectors. It takes integers as input, it looks up these integers in an internal dictionary, and it returns the associated vectors. It’s effectively a dictionary lookup (see <a href="#ch06fig04">figure 6.4</a>).</p>
+
+  <p class="notetitle" id="ch06fig04">Figure 6.4. <a id="ch06fig04__title"></a>The <kbd class="calibre24">embedding</kbd> layer</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig04.jpg"/></p>
+
+  <p class="noind">The <kbd class="calibre24">Embedding</kbd> layer takes as input a 2D tensor of integers, of shape <kbd class="calibre24">(samples, sequence_length)</kbd>, where each entry is a sequence of integers. It can embed sequences of variable lengths: for instance, you could feed into the <kbd class="calibre24">Embedding</kbd> layer in the previous example batches with shapes <kbd class="calibre24">(32, 10)</kbd> (batch of 32 sequences of length 10) or <kbd class="calibre24">(64, 15)</kbd> (batch of 64 sequences of length 15). All sequences in a batch must have the same length, though (because you need to pack them into a single tensor), so sequences that are shorter than others should be padded with zeros, and sequences that are longer should be truncated.</p>
+
+  <p class="noind">This layer returns a 3D floating-point tensor of shape <kbd class="calibre24">(samples, sequence_length, embedding_dimensionality)</kbd>. Such a 3D tensor can then be processed by an RNN layer or a 1D convolution layer (both will be introduced in the following sections).</p>
+
+  <p class="noind">When you instantiate an <kbd class="calibre24">Embedding</kbd> layer, its weights (its internal dictionary of token vectors) are initially random, just as with any other layer. During training, these word vectors are gradually adjusted via backpropagation, structuring the space into something the downstream model can exploit. Once fully trained, the embedding space will show a lot of structure—a kind of structure specialized for the specific problem for which you’re training your model.</p>
+
+  <p class="noind">Let’s apply this idea to the IMDB movie-review sentiment-prediction task that you’re already familiar with. First, you’ll quickly prepare the data. You’ll restrict the movie reviews to the top 10,000 most common words (as you did the first time you worked with this dataset) and cut off the reviews after only 20 words. The network will <a id="iddle1230"></a>learn 8-dimensional embeddings for each of the 10,000 words, turn the input integer sequences (2D integer tensor) into embedded sequences (3D float tensor), flatten the tensor to 2D, and train a single <kbd class="calibre24">Dense</kbd> layer on top for classification.</p>
+
+  <p class="notetitle" id="ch06ex06">Listing 6.6. <a id="ch06ex06__title"></a>Loading the IMDB data for use with an <kbd class="calibre24">Embedding</kbd> layer</p>
+  <pre class="calibre4" id="PLd0e18588">from keras.datasets import imdb
+from keras import preprocessing
+
+max_features = 10000                                                     <span class="cambriamathin">❶</span>
+maxlen = 20                                                              <span class="cambriamathin">❷</span>
+
+(x_train, y_train), (x_test, y_test) = imdb.load_data(
+    num_words=max_features)                                              <span class="cambriamathin">❸</span>
+
+x_train = preprocessing.sequence.pad_sequences(x_train, maxlen=maxlen    <span class="cambriamathin">❹</span>
+x_test = preprocessing.sequence.pad_sequences(x_test, maxlen=maxlen)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Number of words to consider as features</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Cuts off the text after this number of words (among the max_features most common words)</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Loads the data as lists of integers</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Turns the lists of integers into a 2D integer tensor of shape (samples, maxlen)</p>
+  </div>
+
+  <p class="notetitle" id="ch06ex07">Listing 6.7. <a id="ch06ex07__title"></a>Using an <kbd class="calibre24">Embedding</kbd> layer and classifier on the IMDB data</p>
+  <pre class="calibre4" id="PLd0e18651">from keras.models import Sequential
+from keras.layers import Flatten, Dense, Embedding
+
+model = Sequential()
+model.add(Embedding(10000, 8, input_length=maxlen))                         <span class="cambriamathin">❶</span>
+
+model.add(Flatten())                                                        <span class="cambriamathin">❷</span>
+
+model.add(Dense(1, activation='sigmoid'))                                   <span class="cambriamathin">❸</span>
+model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['acc'])
+model.summary()
+
+history = model.fit(x_train, y_train,
+                    epochs=10,
+                    batch_size=32,
+                    validation_split=0.2)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Specifies the maximum input length to the Embedding layer so you can later flatten the embedded inputs. After the Embedding layer, the activations have shape (samples, maxlen, 8).</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Flattens the 3D tensor of embeddings into a 2D tensor of shape (samples, maxlen * 8)</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Adds the classifier on top</p>
+  </div>
+
+  <p class="noind">You get to a validation accuracy of ~76%, which is pretty good considering that you’re only looking at the first 20 words in every review. But note that merely flattening the embedded sequences and training a single <kbd class="calibre24">Dense</kbd> layer on top leads to a model that treats each word in the input sequence separately, without considering inter-word relationships and sentence structure (for example, this model would likely treat both “this movie is a bomb” and “this movie is the bomb” as being negative reviews). It’s <a id="iddle1066"></a><a id="iddle1604"></a><a id="iddle1964"></a><a id="iddle1972"></a><a id="iddle2082"></a><a id="iddle2084"></a>much better to add recurrent layers or 1D convolutional layers on top of the embedded sequences to learn features that take into account each sequence as a whole. That’s what we’ll focus on in the next few sections.</p>
+
+  <p class="notetitle" id="ch06lev3sec2"><a id="ch06lev3sec2__title"></a>Using pretrained word embeddings</p>
+
+  <p class="noind">Sometimes, you have so little training data available that you can’t use your data alone to learn an appropriate task-specific embedding of your vocabulary. What do you do then?</p>
+
+  <p class="noind">Instead of learning word embeddings jointly with the problem you want to solve, you can load embedding vectors from a precomputed embedding space that you know is highly structured and exhibits useful properties—that captures generic aspects of language structure. The rationale behind using pretrained word embeddings in natural-language processing is much the same as for using pretrained convnets in image classification: you don’t have enough data available to learn truly powerful features on your own, but you expect the features that you need to be fairly generic—that is, common visual features or semantic features. In this case, it makes sense to reuse features learned on a different problem.</p>
+
+  <p class="noind">Such word embeddings are generally computed using word-occurrence statistics (observations about what words co-occur in sentences or documents), using a variety of techniques, some involving neural networks, others not. The idea of a dense, low-dimensional embedding space for words, computed in an unsupervised way, was initially explored by Bengio et al. in the early 2000s,<sup class="calibre19">[<a href="#ch06fn01" class="calibre13">1</a>]</sup> but it only started to take off in research and industry applications after the release of one of the most famous and successful word-embedding schemes: the Word2vec algorithm (<a href="https://code.google.com/archive/p/word2vec">https://code.google.com/archive/p/word2vec</a>), developed by Tomas Mikolov at Google in 2013. Word2vec dimensions capture specific semantic properties, such as gender.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch06fn01" class="calibre13">1</a></sup></p>
+
+    <div class="calibre21">
+      Yoshua Bengio et al., <i class="calibre5">Neural Probabilistic Language Models</i> (Springer, 2003).
+    </div>
+  </blockquote>
+
+  <p class="noind">There are various precomputed databases of word embeddings that you can download and use in a Keras <kbd class="calibre24">Embedding</kbd> layer. Word2vec is one of them. Another popular one is called Global Vectors for Word Representation (GloVe, <a href="https://nlp.stanford.edu/projects/glove">https://nlp.stanford.edu/projects/glove</a>), which was developed by Stanford researchers in 2014. This embedding technique is based on factorizing a matrix of word co-occurrence statistics. Its developers have made available precomputed embeddings for millions of English tokens, obtained from Wikipedia data and Common Crawl data.</p>
+
+  <p class="noind">Let’s look at how you can get started using GloVe embeddings in a Keras model. The same method is valid for Word2vec embeddings or any other word-embedding database. You’ll also use this example to refresh the text-tokenization techniques introduced a few paragraphs ago: you’ll start from raw text and work your way up.</p>
+
+  <h3 class="head1" id="ch06lev2sec3">6.1.3. <a id="ch06lev2sec3__title"></a>Putting it all together: from raw text to word embeddings</h3>
+
+  <p class="noind">You’ll use a model similar to the one we just went over: embedding sentences in sequences of vectors, flattening them, and training a <kbd class="calibre24">Dense</kbd> layer on top. But you’ll do <a id="iddle1180"></a><a id="iddle1251"></a><a id="iddle1973"></a><a id="iddle1989"></a><a id="iddle2080"></a>so using pretrained word embeddings; and instead of using the pretokenized IMDB data packaged in Keras, you’ll start from scratch by downloading the original text data.</p>
+
+  <p class="notetitle" id="ch06lev3sec3"><a id="ch06lev3sec3__title"></a>Downloading the IMDB data as raw text</p>
+
+  <p class="noind">First, head to <a href="http://mng.bz/0tIo">http://mng.bz/0tIo</a> and download the raw IMDB dataset. Uncompress it.</p>
+
+  <p class="noind">Now, let’s collect the individual training reviews into a list of strings, one string per review. You’ll also collect the review labels (positive/negative) into a <kbd class="calibre24">labels</kbd> list.</p>
+
+  <p class="notetitle" id="ch06ex08">Listing 6.8. <a id="ch06ex08__title"></a>Processing the labels of the raw IMDB data</p>
+  <pre class="calibre4" id="PLd0e18859">import os
+
+imdb_dir = '/Users/fchollet/Downloads/aclImdb'
+train_dir = os.path.join(imdb_dir, 'train')
+
+labels = []
+texts = []
+
+for label_type in ['neg', 'pos']:
+    dir_name = os.path.join(train_dir, label_type)
+    for fname in os.listdir(dir_name):
+        if fname[-4:] == '.txt':
+            f = open(os.path.join(dir_name, fname))
+            texts.append(f.read())
+            f.close()
+            if label_type == 'neg':
+                labels.append(0)
+            else:
+                labels.append(1)</pre>
+
+  <p class="notetitle" id="ch06lev3sec4"><a id="ch06lev3sec4__title"></a>Tokenizing the data</p>
+
+  <p class="noind">Let’s vectorize the text and prepare a training and validation split, using the concepts introduced earlier in this section. Because pretrained word embeddings are meant to be particularly useful on problems where little training data is available (otherwise, task-specific embeddings are likely to outperform them), we’ll add the following twist: restricting the training data to the first 200 samples. So you’ll learn to classify movie reviews after looking at just 200 examples.</p>
+
+  <p class="notetitle" id="ch06ex09">Listing 6.9. <a id="ch06ex09__title"></a>Tokenizing the text of the raw IMDB data</p>
+  <pre class="calibre4" id="PLd0e18877">from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
+import numpy as np
+
+maxlen = 100                                           <span class="cambriamathin">❶</span>
+training_samples = 200                                 <span class="cambriamathin">❷</span>
+validation_samples = 10000                             <span class="cambriamathin">❸</span>
+max_words = 10000                                      <span class="cambriamathin">❹</span>
+
+tokenizer = Tokenizer(num_words=max_words)
+tokenizer.fit_on_texts(texts)
+sequences = tokenizer.texts_to_sequences(texts)
+
+word_index = tokenizer.word_index
+print('Found %s unique tokens.' % len(word_index))
+
+data = pad_sequences(sequences, maxlen=maxlen)
+
+labels = np.asarray(labels)
+print('Shape of data tensor:', data.shape)
+print('Shape of label tensor:', labels.shape)
+
+indices = np.arange(data.shape[0])                     <span class="cambriamathin">❺</span>
+np.random.shuffle(indices)
+data = data[indices]
+labels = labels[indices]
+
+x_train = data[:training_samples]
+y_train = labels[:training_samples]
+x_val = data[training_samples: training_samples + validation_samples]
+y_val = labels[training_samples: training_samples + validation_samples]</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1250"></a><a id="iddle1344"></a><a id="iddle1784"></a><a id="iddle1968"></a><a id="iddle1971"></a><a id="iddle2075"></a><a id="iddle2079"></a><span class="cambriamathin1">❶</span> Cuts off reviews after 100 words</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Trains on 200 samples</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Validates on 10,000 samples</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Considers only the top 10,000 words in the dataset</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Splits the data into a training set and a validation set, but first shuffles the data, because you’re starting with data in which samples are ordered (all negative first, then all positive)</p>
+  </div>
+
+  <p class="notetitle" id="ch06lev3sec5"><a id="ch06lev3sec5__title"></a>Downloading the GloVe word embeddings</p>
+
+  <p class="noind">Go to <a href="https://nlp.stanford.edu/projects/glove">https://nlp.stanford.edu/projects/glove</a>, and download the precomputed embeddings from 2014 English Wikipedia. It’s an 822 MB zip file called glove.6B.zip, containing 100-dimensional embedding vectors for 400,000 words (or nonword tokens). Unzip it.</p>
+
+  <p class="notetitle" id="ch06lev3sec6"><a id="ch06lev3sec6__title"></a>Preprocessing the embeddings</p>
+
+  <p class="noind">Let’s parse the unzipped file (a .txt file) to build an index that maps words (as strings) to their vector representation (as number vectors).</p>
+
+  <p class="notetitle" id="ch06ex10">Listing 6.10. <a id="ch06ex10__title"></a>Parsing the GloVe word-embeddings file</p>
+  <pre class="calibre4" id="PLd0e19034">glove_dir = '/Users/fchollet/Downloads/glove.6B'
+
+embeddings_index = {}
+f = open(os.path.join(glove_dir, 'glove.6B.100d.txt'))
+for line in f:
+    values = line.split()
+    word = values[0]
+    coefs = np.asarray(values[1:], dtype='float32')
+    embeddings_index[word] = coefs
+f.close()
+
+print('Found %s word vectors.' % len(embeddings_index))</pre>
+
+  <p class="noind"><a id="iddle1345"></a><a id="iddle1624"></a><a id="iddle1632"></a><a id="iddle1967"></a><a id="iddle1970"></a><a id="iddle2074"></a><a id="iddle2078"></a>Next, you’ll build an embedding matrix that you can load into an <kbd class="calibre24">Embedding</kbd> layer. It must be a matrix of shape <kbd class="calibre24">(max_words, embedding_dim)</kbd>, where each entry <i class="calibre5">i</i> contains the <kbd class="calibre24">embedding_dim</kbd>-dimensional vector for the word of index <i class="calibre5">i</i> in the reference word index (built during tokenization). Note that index 0 isn’t supposed to stand for any word or token—it’s a placeholder.</p>
+
+  <p class="notetitle" id="ch06ex11">Listing 6.11. <a id="ch06ex11__title"></a>Preparing the GloVe word-embeddings matrix</p>
+  <pre class="calibre4" id="PLd0e19124">embedding_dim = 100
+
+embedding_matrix = np.zeros((max_words, embedding_dim))
+for word, i in word_index.items():
+    if i &lt; max_words:
+        embedding_vector = embeddings_index.get(word)
+        if embedding_vector is not None:
+            embedding_matrix[i] = embedding_vector           <span class="cambriamathin">❶</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Words not found in the embedding index will be all zeros.</p>
+  </div>
+
+  <p class="notetitle" id="ch06lev3sec7"><a id="ch06lev3sec7__title"></a>Defining a model</p>
+
+  <p class="noind">You’ll use the same model architecture as before.</p>
+
+  <p class="notetitle" id="ch06ex12">Listing 6.12. <a id="ch06ex12__title"></a>Model definition</p>
+  <pre class="calibre4" id="PLd0e19156">from keras.models import Sequential
+from keras.layers import Embedding, Flatten, Dense
+
+model = Sequential()
+model.add(Embedding(max_words, embedding_dim, input_length=maxlen))
+model.add(Flatten())
+model.add(Dense(32, activation='relu'))
+model.add(Dense(1, activation='sigmoid'))
+model.summary()</pre>
+
+  <p class="notetitle" id="ch06lev3sec8"><a id="ch06lev3sec8__title"></a>Loading the GloVe embeddings in the model</p>
+
+  <p class="noind">The <kbd class="calibre24">Embedding</kbd> layer has a single weight matrix: a 2D float matrix where each entry <i class="calibre5">i</i> is the word vector meant to be associated with index <i class="calibre5">i</i>. Simple enough. Load the GloVe matrix you prepared into the <kbd class="calibre24">Embedding</kbd> layer, the first layer in the model.</p>
+
+  <p class="notetitle" id="ch06ex13">Listing 6.13. <a id="ch06ex13__title"></a>Loading pretrained word embeddings into the <kbd class="calibre24">Embedding</kbd> layer</p>
+  <pre class="calibre4" id="PLd0e19189">model.layers[0].set_weights([embedding_matrix])
+model.layers[0].trainable = False</pre>
+
+  <p class="noind">Additionally, you’ll freeze the <kbd class="calibre24">Embedding</kbd> layer (set its <kbd class="calibre24">trainable</kbd> attribute to <kbd class="calibre24">False</kbd>), following the same rationale you’re already familiar with in the context of pretrained convnet features: when parts of a model are pretrained (like your <kbd class="calibre24">Embedding</kbd> layer) and parts are randomly initialized (like your classifier), the pretrained parts shouldn’t be updated during training, to avoid forgetting what they already know. The large <a id="iddle1267"></a><a id="iddle1628"></a><a id="iddle1637"></a><a id="iddle1974"></a><a id="iddle2001"></a><a id="iddle2076"></a><a id="iddle2081"></a>gradient updates triggered by the randomly initialized layers would be disruptive to the already-learned features.</p>
+
+  <p class="notetitle" id="ch06lev3sec9"><a id="ch06lev3sec9__title"></a>Training and evaluating the model</p>
+
+  <p class="noind">Compile and train the model.</p>
+
+  <p class="notetitle" id="ch06ex14">Listing 6.14. <a id="ch06ex14__title"></a>Training and evaluation</p>
+  <pre class="calibre4" id="PLd0e19280">model.compile(optimizer='rmsprop',
+              loss='binary_crossentropy',
+              metrics=['acc'])
+history = model.fit(x_train, y_train,
+                    epochs=10,
+                    batch_size=32,
+                    validation_data=(x_val, y_val))
+model.save_weights('pre_trained_glove_model.h5')</pre>
+
+  <p class="noind">Now, plot the model’s performance over time (see <a href="#ch06fig05">figures 6.5</a> and <a href="#ch06fig06">6.6</a>).</p>
+
+  <p class="notetitle" id="ch06fig05">Figure 6.5. <a id="ch06fig05__title"></a>Training and validation loss when using pretrained word embeddings</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig05.jpg"/></p>
+
+  <p class="notetitle" id="ch06fig06">Figure 6.6. <a id="ch06fig06__title"></a>Training and validation accuracy when using pretrained word embeddings</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig06.jpg"/></p>
+
+  <p class="notetitle" id="ch06ex15">Listing 6.15. <a id="ch06ex15__title"></a>Plotting the results</p>
+  <pre class="calibre4" id="PLd0e19328">import matplotlib.pyplot as plt
+
+acc = history.history['acc']
+val_acc = history.history['val_acc']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+epochs = range(1, len(acc) + 1)
+
+plt.plot(epochs, acc, 'bo', label='Training acc')
+plt.plot(epochs, val_acc, 'b', label='Validation acc')
+plt.title('Training and validation accuracy')
+plt.legend()
+
+plt.figure()
+
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+
+plt.show()</pre>
+
+  <p class="noind">The model quickly starts overfitting, which is unsurprising given the small number of training samples. Validation accuracy has high variance for the same reason, but it seems to reach the high 50s.</p>
+
+  <p class="noind">Note that your mileage may vary: because you have so few training samples, performance is heavily dependent on exactly which 200 samples you choose—and you’re choosing them at random. If this works poorly for you, try choosing a different random set of 200 samples, for the sake of the exercise (in real life, you don’t get to choose your training data).</p>
+
+  <p class="noind">You can also train the same model without loading the pretrained word embeddings and without freezing the embedding layer. In that case, you’ll learn a task--specific embedding of the input tokens, which is generally more powerful than pretrained word embeddings when lots of data is available. But in this case, you have only 200 training samples. Let’s try it (see <a href="#ch06fig07">figures 6.7</a> and <a href="#ch06fig08">6.8</a>).</p>
+
+  <p class="notetitle" id="ch06fig07">Figure 6.7. <a id="ch06fig07__title"></a>Training and validation loss without using pretrained word embeddings</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig07.jpg"/></p>
+
+  <p class="notetitle" id="ch06fig08">Figure 6.8. <a id="ch06fig08__title"></a>Training and validation accuracy without using pretrained word embeddings</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig08.jpg"/></p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch06ex16">Listing 6.16. <a id="ch06ex16__title"></a>Training the same model without pretrained word embeddings</p>
+  <pre class="calibre4" id="PLd0e19385">from keras.models import Sequential
+from keras.layers import Embedding, Flatten, Dense
+
+model = Sequential()
+model.add(Embedding(max_words, embedding_dim, input_length=maxlen))
+model.add(Flatten())
+model.add(Dense(32, activation='relu'))
+model.add(Dense(1, activation='sigmoid'))
+model.summary()
+
+model.compile(optimizer='rmsprop',
+              loss='binary_crossentropy',
+              metrics=['acc'])
+history = model.fit(x_train, y_train,
+                    epochs=10,
+                    batch_size=32,
+                    validation_data=(x_val, y_val))</pre>
+
+  <p class="noind">Validation accuracy stalls in the low 50s. So in this case, pretrained word embeddings outperform jointly learned embeddings. If you increase the number of training samples, this will quickly stop being the case—try it as an exercise.</p>
+
+  <p class="noind">Finally, let’s evaluate the model on the test data. First, you need to tokenize the test data.</p>
+
+  <p class="notetitle" id="ch06ex17">Listing 6.17. <a id="ch06ex17__title"></a>Tokenizing the data of the test set</p>
+  <pre class="calibre4" id="PLd0e19401">test_dir = os.path.join(imdb_dir, 'test')
+
+labels = []
+texts = []
+
+for label_type in ['neg', 'pos']:
+    dir_name = os.path.join(test_dir, label_type)
+    for fname in sorted(os.listdir(dir_name)):
+        if fname[-4:] == '.txt':
+            f = open(os.path.join(dir_name, fname))
+            texts.append(f.read())
+            f.close()
+            if label_type == 'neg':
+                labels.append(0)
+            else:
+                labels.append(1)
+
+sequences = tokenizer.texts_to_sequences(texts)
+x_test = pad_sequences(sequences, maxlen=maxlen)
+y_test = np.asarray(labels)</pre>
+
+  <p class="noind">Next, load and evaluate the first model.</p>
+
+  <p class="notetitle" id="ch06ex18">Listing 6.18. <a id="ch06ex18__title"></a>Evaluating the model on the test set</p>
+  <pre class="calibre4" id="PLd0e19413">model.load_weights('pre_trained_glove_model.h5')
+model.evaluate(x_test, y_test)</pre>
+
+  <p class="noind">You get an appalling test accuracy of 56%. Working with just a handful of training samples is difficult!</p>
+
+  <h3 class="head1" id="ch06lev2sec4">6.1.4. <a id="ch06lev2sec4__title"></a>Wrapping up</h3>
+
+  <p class="noind">Now you’re able to do the following:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Turn raw text into something a neural network can process</li>
+
+    <li class="calibre17">Use the <kbd class="calibre24">Embedding</kbd> layer in a Keras model to learn task-specific token embeddings</li>
+
+    <li class="calibre17">Use pretrained word embeddings to get an extra boost on small natural--language-processing problems</li>
+  </ul>
+
+  <h2 class="head" id="ch06lev1sec2"><a class="calibre3" id="ch06lev1sec2__title"></a>6.2. Understanding recurrent neural networks</h2>
+
+  <p class="noind"><a id="iddle1283"></a><a id="iddle1425"></a><a id="iddle1818"></a><a id="iddle1856"></a>A major characteristic of all neural networks you’ve seen so far, such as densely connected networks and convnets, is that they have no memory. Each input shown to them is processed independently, with no state kept in between inputs. With such networks, in order to process a sequence or a temporal series of data points, you have to show the entire sequence to the network at once: turn it into a single data point. For instance, this is what you did in the IMDB example: an entire movie review was transformed into a single large vector and processed in one go. Such networks are called <i class="calibre5">feedforward networks</i>.</p>
+
+  <p class="noind">In contrast, as you’re reading the present sentence, you’re processing it word by word—or rather, eye saccade by eye saccade—while keeping memories of what came before; this gives you a fluid representation of the meaning conveyed by this sentence. Biological intelligence processes information incrementally while maintaining an internal model of what it’s processing, built from past information and constantly updated as new information comes in.</p>
+
+  <p class="noind">A <i class="calibre5">recurrent neural network</i> (RNN) adopts the same principle, albeit in an extremely simplified version: it processes sequences by iterating through the sequence elements and maintaining a <i class="calibre5">state</i> containing information relative to what it has seen so far. In effect, an RNN is a type of neural network that has an internal loop (see <a href="#ch06fig09">figure 6.9</a>). The state of the RNN is reset between processing two different, independent sequences (such as two different IMDB reviews), so you still consider one sequence a single data point: a single input to the network. What changes is that this data point is no longer processed in a single step; rather, the network internally loops over sequence elements.</p>
+
+  <p class="notetitle" id="ch06fig09">Figure 6.9. <a id="ch06fig09__title"></a>A recurrent network: a network with a loop</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig09.jpg"/></p>
+
+  <p class="noind">To make these notions of <i class="calibre5">loop</i> and <i class="calibre5">state</i> clear, let’s implement the forward pass of a toy RNN in Numpy. This RNN takes as input a sequence of vectors, which you’ll encode as a 2D tensor of size <kbd class="calibre24">(timesteps, input_features)</kbd>. It loops over timesteps, and at each timestep, it considers its current state at <kbd class="calibre24">t</kbd> and the input at <kbd class="calibre24">t</kbd> (of shape <kbd class="calibre24">(input_features,)</kbd>, and combines them to obtain the output at <kbd class="calibre24">t</kbd>. You’ll then set the state for the next step to be this previous output. For the first timestep, the previous output isn’t defined; hence, there is no current state. So, you’ll initialize the state as an all-zero vector called the <i class="calibre5">initial state</i> of the network.</p>
+
+  <p class="noind">In pseudocode, this is the RNN.</p>
+
+  <p class="notetitle" id="ch06ex19">Listing 6.19. <a id="ch06ex19__title"></a>Pseudocode RNN</p>
+  <pre class="calibre4" id="PLd0e19549">state_t = 0                                <span class="cambriamathin">❶</span>
+for input_t in input_sequence:             <span class="cambriamathin">❷</span>
+    output_t = f(input_t, state_t)
+    state_t = output_t                     <span class="cambriamathin">❸</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1299"></a><span class="cambriamathin1">❶</span> The state at t</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Iterates over sequence elements</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> The previous output becomes the state for the next iteration.</p>
+  </div>
+
+  <p class="noind">You can even flesh out the function <kbd class="calibre24">f</kbd>: the transformation of the input and state into an output will be parameterized by two matrices, <kbd class="calibre24">W</kbd> and <kbd class="calibre24">U</kbd>, and a bias vector. It’s similar to the transformation operated by a densely connected layer in a feedforward network.</p>
+
+  <p class="notetitle" id="ch06ex20">Listing 6.20. <a id="ch06ex20__title"></a>More detailed pseudocode for the RNN</p>
+  <pre class="calibre4" id="PLd0e19615">state_t = 0
+for input_t in input_sequence:
+    output_t = activation(dot(W, input_t) + dot(U, state_t) + b)
+    state_t = output_t</pre>
+
+  <p class="noind">To make these notions absolutely unambiguous, let’s write a naive Numpy implementation of the forward pass of the simple RNN.</p>
+
+  <p class="notetitle" id="ch06ex21">Listing 6.21. <a id="ch06ex21__title"></a>Numpy implementation of a simple RNN</p>
+  <pre class="calibre4" id="PLd0e19627">import numpy as np
+
+timesteps = 100                                                         <span class="cambriamathin">❶</span>
+input_features = 32                                                     <span class="cambriamathin">❷</span>
+output_features = 64                                                    <span class="cambriamathin">❸</span>
+
+inputs = np.random.random((timesteps, input_features))                  <span class="cambriamathin">❹</span>
+
+state_t = np.zeros((output_features,))                                  <span class="cambriamathin">❺</span>
+
+W = np.random.random((output_features, input_features))                 <span class="cambriamathin">❻</span>
+U = np.random.random((output_features, output_features))                <span class="cambriamathin">❻</span>
+b = np.random.random((output_features,))                                <span class="cambriamathin">❻</span>
+
+successive_outputs = []
+for input_t in inputs:                                                  <span class="cambriamathin">❼</span>
+    output_t = np.tanh(np.dot(W, input_t) + np.dot(U, state_t) + b)     <span class="cambriamathin">❽</span>
+
+    successive_outputs.append(output_t)                                 <span class="cambriamathin">❾</span>
+
+    state_t = output_t                                                  <span class="cambriamathin">❿</span>
+
+final_output_sequence = np.concatenate(successive_outputs, axis=0)      <span class="cambriamathin">⓫</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Number of timesteps in the input sequence</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Dimensionality of the input feature space</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Dimensionality of the output feature space</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Input data: random noise for the sake of the example</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Initial state: an all-zero vector</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Creates random weight matrices</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❼</span> input_t is a vector of shape (input_features,).</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❽</span> Combines the input with the current state (the previous output) to obtain the current output</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❾</span> Stores this output in a list</p>
+
+    <p class="codeannotation"><a id="iddle1470"></a><a id="iddle1508"></a><a id="iddle1830"></a><a id="iddle1846"></a><a id="iddle1903"></a><span class="cambriamathin1">❿</span> Updates the state of the network for the next timestep</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">⓫</span> The final output is a 2D tensor of shape (timesteps, output_features).</p>
+  </div>
+
+  <p class="noind">Easy enough: in summary, an RNN is a <kbd class="calibre24">for</kbd> loop that reuses quantities computed during the previous iteration of the loop, nothing more. Of course, there are many different RNNs fitting this definition that you could build—this example is one of the simplest RNN formulations. RNNs are characterized by their step function, such as the following function in this case (see <a href="#ch06fig10">figure 6.10</a>):</p>
+  <pre class="calibre4" id="PLd0e19822">output_t = np.tanh(np.dot(W, input_t) + np.dot(U, state_t) + b)</pre>
+
+  <p class="notetitle" id="ch06fig10">Figure 6.10. <a id="ch06fig10__title"></a>A simple RNN, unrolled over time</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig10_alt.jpg"/></p>
+  <hr class="calibre25"/>
+
+  <p class="notetitle" id="ch06note01">Note</p>
+
+  <p class="noindclose">In this example, the final output is a 2D tensor of shape <kbd class="calibre27">(timesteps, output_features)</kbd>, where each timestep is the output of the loop at time <kbd class="calibre27">t</kbd>. Each timestep <kbd class="calibre27">t</kbd> in the output tensor contains information about timesteps <kbd class="calibre27">0</kbd> to <kbd class="calibre27">t</kbd> in the input sequence—about the entire past. For this reason, in many cases, you don’t need this full sequence of outputs; you just need the last output (<kbd class="calibre27">output_t</kbd> at the end of the loop), because it already contains information about the entire sequence.</p>
+  <hr class="calibre25"/>
+
+  <h3 class="head1" id="ch06lev2sec5">6.2.1. <a id="ch06lev2sec5__title"></a>A recurrent layer in Keras</h3>
+
+  <p class="noind">The process you just naively implemented in Numpy corresponds to an actual Keras layer—the <kbd class="calibre24">SimpleRNN</kbd> layer:</p>
+  <pre class="calibre4" id="PLd0e19876">from keras.layers import SimpleRNN</pre>
+
+  <p class="noind">There is one minor difference: <kbd class="calibre24">SimpleRNN</kbd> processes batches of sequences, like all other Keras layers, not a single sequence as in the Numpy example. This means it takes inputs of shape <kbd class="calibre24">(batch_size, timesteps, input_features)</kbd>, rather than <kbd class="calibre24">(timesteps, input_features)</kbd>.</p>
+
+  <p class="noind">Like all recurrent layers in Keras, <kbd class="calibre24">SimpleRNN</kbd> can be run in two different modes: it can return either the full sequences of successive outputs for each timestep (a 3D tensor of shape <kbd class="calibre24">(batch_size, timesteps, output_features)</kbd>) or only the last output for each input sequence (a 2D tensor of shape <kbd class="calibre24">(batch_size, output_features)</kbd>). These two modes are controlled by the <kbd class="calibre24">return_sequences</kbd> constructor argument. Let’s look at an example that uses <kbd class="calibre24">SimpleRNN</kbd> and returns only the output at the last timestep:</p>
+  <pre class="calibre4" id="PLd0e19913">&gt;&gt;&gt; from keras.models import Sequential
+&gt;&gt;&gt; from keras.layers import Embedding, SimpleRNN
+&gt;&gt;&gt; model = Sequential()
+&gt;&gt;&gt; model.add(Embedding(10000, 32))
+&gt;&gt;&gt; model.add(SimpleRNN(32))
+&gt;&gt;&gt; model.summary()
+________________________________________________________________
+Layer (type)                     Output Shape          Param #
+================================================================
+embedding_22 (Embedding)         (None, None, 32)      320000
+________________________________________________________________
+simplernn_10 (SimpleRNN)         (None, 32)            2080
+================================================================
+Total params: 322,080
+Trainable params: 322,080
+Non-trainable params: 0</pre>
+
+  <p class="noind">The following example returns the full state sequence:</p>
+  <pre class="calibre4" id="PLd0e19922">&gt;&gt;&gt; model = Sequential()
+&gt;&gt;&gt; model.add(Embedding(10000, 32))
+&gt;&gt;&gt; model.add(SimpleRNN(32, return_sequences=True))
+&gt;&gt;&gt; model.summary()
+________________________________________________________________
+Layer (type)                     Output Shape          Param #
+================================================================
+embedding_23 (Embedding)         (None, None, 32)      320000
+________________________________________________________________
+simplernn_11 (SimpleRNN)         (None, None, 32)      2080
+================================================================
+Total params: 322,080
+Trainable params: 322,080
+Non-trainable params: 0</pre>
+
+  <p class="noind">It’s sometimes useful to stack several recurrent layers one after the other in order to increase the representational power of a network. In such a setup, you have to get all of the intermediate layers to return full sequence of outputs:</p>
+  <pre class="calibre4" id="PLd0e19931">&gt;&gt;&gt; model = Sequential()
+&gt;&gt;&gt; model.add(Embedding(10000, 32))
+&gt;&gt;&gt; model.add(SimpleRNN(32, return_sequences=True))
+&gt;&gt;&gt; model.add(SimpleRNN(32, return_sequences=True))
+&gt;&gt;&gt; model.add(SimpleRNN(32, return_sequences=True))
+&gt;&gt;&gt; model.add(SimpleRNN(32))                                <span class="cambriamathin">❶</span>
+&gt;&gt;&gt; model.summary()
+________________________________________________________________
+Layer (type)                     Output Shape          Param #
+================================================================
+embedding_24 (Embedding)         (None, None, 32)      320000
+________________________________________________________________
+simplernn_12 (SimpleRNN)         (None, None, 32)      2080
+________________________________________________________________
+simplernn_13 (SimpleRNN)         (None, None, 32)      2080
+________________________________________________________________
+simplernn_14 (SimpleRNN)         (None, None, 32)      2080
+________________________________________________________________
+simplernn_15 (SimpleRNN)         (None, 32)            2080
+================================================================
+Total params: 328,320
+Trainable params: 328,320
+Non-trainable params: 0</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Last layer only returns the last output</p>
+  </div>
+
+  <p class="noind">Now, let’s use such a model on the IMDB movie-review-classification problem. First, preprocess the data.</p>
+
+  <p class="notetitle" id="ch06ex22">Listing 6.22. <a id="ch06ex22__title"></a>Preparing the IMDB data</p>
+  <pre class="calibre4" id="PLd0e19961">from keras.datasets import imdb
+from keras.preprocessing import sequence
+
+max_features = 10000                                  <span class="cambriamathin">❶</span>
+maxlen = 500                                          <span class="cambriamathin">❷</span>
+batch_size = 32
+
+print('Loading data...')
+(input_train, y_train), (input_test, y_test) = imdb.load_data(
+     num_words=max_features)
+print(len(input_train), 'train sequences')
+print(len(input_test), 'test sequences')
+
+print('Pad sequences (samples x time)')
+input_train = sequence.pad_sequences(input_train, maxlen=maxlen)
+input_test = sequence.pad_sequences(input_test, maxlen=maxlen)
+print('input_train shape:', input_train.shape)
+print('input_test shape:', input_test.shape)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Number of words to consider as features</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Cuts off texts after this many words (among the max_features most common words)</p>
+  </div>
+
+  <p class="noind">Let’s train a simple recurrent network using an <kbd class="calibre24">Embedding</kbd> layer and a <kbd class="calibre24">SimpleRNN</kbd> layer.</p>
+
+  <p class="notetitle" id="ch06ex23">Listing 6.23. <a id="ch06ex23__title"></a>Training the model with <kbd class="calibre24">Embedding</kbd> and <kbd class="calibre24">SimpleRNN</kbd> layers</p>
+  <pre class="calibre4" id="PLd0e20012">from keras.layers import Dense
+
+model = Sequential()
+model.add(Embedding(max_features, 32))
+model.add(SimpleRNN(32))
+model.add(Dense(1, activation='sigmoid'))
+
+model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['acc'])
+history = model.fit(input_train, y_train,
+                    epochs=10,
+                    batch_size=128,
+                    validation_split=0.2)</pre>
+
+  <p class="noind">Now, let’s display the training and validation loss and accuracy (see <a href="#ch06fig11">figures 6.11</a> and <a href="#ch06fig12">6.12</a>).</p>
+
+  <p class="notetitle" id="ch06fig11">Figure 6.11. <a id="ch06fig11__title"></a>Training and validation loss on IMDB with <kbd class="calibre24">simplernn</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig11.jpg"/></p>
+
+  <p class="notetitle" id="ch06fig12">Figure 6.12. <a id="ch06fig12__title"></a>Training and validation accuracy on IMDB with <kbd class="calibre24">simplernn</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig12.jpg"/></p>
+
+  <p class="notetitle" id="ch06ex24">Listing 6.24. <a id="ch06ex24__title"></a>Plotting results</p>
+  <pre class="calibre4" id="PLd0e20066">import matplotlib.pyplot as plt
+
+acc = history.history['acc']
+val_acc = history.history['val_acc']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+epochs = range(1, len(acc) + 1)
+
+plt.plot(epochs, acc, 'bo', label='Training acc')
+plt.plot(epochs, val_acc, 'b', label='Validation acc')
+plt.title('Training and validation accuracy')
+plt.legend()
+
+plt.figure()
+
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+
+plt.show()</pre>
+
+  <p class="noind"><a id="iddle1067"></a><a id="iddle1284"></a><a id="iddle1313"></a><a id="iddle1368"></a><a id="iddle1383"></a><a id="iddle1536"></a><a id="iddle1826"></a><a id="iddle1827"></a><a id="iddle1869"></a><a id="iddle2044"></a>As a reminder, in <a href="../Text/03.html#ch03">chapter 3</a>, the first naive approach to this dataset got you to a test accuracy of 88%. Unfortunately, this small recurrent network doesn’t perform well compared to this baseline (only 85% validation accuracy). Part of the problem is that your inputs only consider the first 500 words, rather than full sequences—hence, the RNN has access to less information than the earlier baseline model. The remainder of the problem is that <kbd class="calibre24">SimpleRNN</kbd> isn’t good at processing long sequences, such as text. Other types of recurrent layers perform much better. Let’s look at some more-advanced layers.</p>
+
+  <h3 class="head1" id="ch06lev2sec6">6.2.2. <a id="ch06lev2sec6__title"></a>Understanding the LSTM and GRU layers</h3>
+
+  <p class="noind"><kbd class="calibre24">SimpleRNN</kbd> isn’t the only recurrent layer available in Keras. There are two others: <kbd class="calibre24">LSTM</kbd> and <kbd class="calibre24">GRU</kbd>. In practice, you’ll always use one of these, because <kbd class="calibre24">SimpleRNN</kbd> is generally too simplistic to be of real use. <kbd class="calibre24">SimpleRNN</kbd> has a major issue: although it should theoretically be able to retain at time <kbd class="calibre24">t</kbd> information about inputs seen many timesteps before, in practice, such long-term dependencies are impossible to learn. This is due to the <i class="calibre5">vanishing gradient problem</i>, an effect that is similar to what is observed with non-recurrent networks (feedforward networks) that are many layers deep: as you keep adding layers to a network, the network eventually becomes untrainable. The theoretical reasons for this effect were studied by Hochreiter, Schmidhuber, and Bengio in the early 1990s.<sup class="calibre19">[<a href="#ch06fn02" class="calibre13">2</a>]</sup> The <kbd class="calibre24">LSTM</kbd> and <kbd class="calibre24">GRU</kbd> layers are designed to solve this problem.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch06fn02" class="calibre13">2</a></sup></p>
+
+    <div class="calibre21">
+      See, for example, Yoshua Bengio, Patrice Simard, and Paolo Frasconi, “Learning Long-Term Dependencies with Gradient Descent Is Difficult,” <i class="calibre5">IEEE Transactions on Neural Networks</i> 5, no. 2 (1994).
+    </div>
+  </blockquote>
+
+  <p class="noind">Let’s consider the <kbd class="calibre24">LSTM</kbd> layer. The underlying Long Short-Term Memory (LSTM) algorithm was developed by Hochreiter and Schmidhuber in 1997;<sup class="calibre19">[<a href="#ch06fn03" class="calibre13">3</a>]</sup> it was the culmination of their research on the vanishing gradient problem.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch06fn03" class="calibre13">3</a></sup></p>
+
+    <div class="calibre21">
+      Sepp Hochreiter and Jürgen Schmidhuber, “Long Short-Term Memory,” <i class="calibre5">Neural Computation</i> 9, no. 8 (1997).
+    </div>
+  </blockquote>
+
+  <p class="noind">This layer is a variant of the <kbd class="calibre24">SimpleRNN</kbd> layer you already know about; it adds a way to carry information across many timesteps. Imagine a conveyor belt running parallel to the sequence you’re processing. Information from the sequence can jump onto the conveyor belt at any point, be transported to a later timestep, and jump off, intact, when you need it. This is essentially what LSTM does: it saves information for later, thus preventing older signals from gradually vanishing during processing.</p>
+
+  <p class="noind">To understand this in detail, let’s start from the <kbd class="calibre24">SimpleRNN</kbd> cell (see <a href="#ch06fig13">figure 6.13</a>). Because you’ll have a lot of weight matrices, index the <kbd class="calibre24">W</kbd> and <kbd class="calibre24">U</kbd> matrices in the cell with the letter <kbd class="calibre24">o</kbd> (<kbd class="calibre24">Wo</kbd> and <kbd class="calibre24">Uo</kbd>) for <i class="calibre5">output</i>.</p>
+
+  <p class="notetitle" id="ch06fig13">Figure 6.13. <a id="ch06fig13__title"></a>The starting point of an <kbd class="calibre24">lstm</kbd> layer: a <kbd class="calibre24">simplernn</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig13_alt.jpg"/></p>
+
+  <p class="noind">Let’s add to this picture an additional data flow that carries information across timesteps. Call its values at different timesteps <kbd class="calibre24">Ct</kbd>, where <i class="calibre5">C</i> stands for <i class="calibre5">carry</i>. This information will have the following impact on the cell: it will be combined with the input connection and the recurrent connection (via a dense transformation: a dot product with a weight matrix followed by a bias add and the application of an activation function), and it will affect the state being sent to the next timestep (via an activation function and a multiplication operation). Conceptually, the carry dataflow is a way to modulate the next output and the next state (see <a href="#ch06fig14">figure 6.14</a>). Simple so far.</p>
+
+  <p class="notetitle" id="ch06fig14">Figure 6.14. <a id="ch06fig14__title"></a>Going from a <kbd class="calibre24">simplernn</kbd> to an <kbd class="calibre24">lstm</kbd>: adding a carry track</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig14_alt.jpg"/></p>
+
+  <p class="noind">Now the subtlety: the way the next value of the carry dataflow is computed. It involves three distinct transformations. All three have the form of a <kbd class="calibre24">SimpleRNN</kbd> cell:</p>
+  <pre class="calibre4" id="PLd0e20286">y = activation(dot(state_t, U) + dot(input_t, W) + b)</pre>
+
+  <p class="noind">But all three transformations have their own weight matrices, which you’ll index with the letters <kbd class="calibre24">i</kbd>, <kbd class="calibre24">f</kbd>, and <kbd class="calibre24">k</kbd>. Here’s what you have so far (it may seem a bit arbitrary, but bear with me).</p>
+
+  <p class="notetitle" id="ch06ex25">Listing 6.25. <a id="ch06ex25__title"></a>Pseudocode details of the LSTM architecture (1/2)</p>
+  <pre class="calibre4" id="PLd0e20307">output_t = activation(dot(state_t, Uo) + dot(input_t, Wo) + dot(C_t, Vo) + bo)
+
+i_t = activation(dot(state_t, Ui) + dot(input_t, Wi) + bi)
+f_t = activation(dot(state_t, Uf) + dot(input_t, Wf) + bf)
+k_t = activation(dot(state_t, Uk) + dot(input_t, Wk) + bk)</pre>
+
+  <p class="noind">You obtain the new carry state (the next <kbd class="calibre24">c_t</kbd>) by combining <kbd class="calibre24">i_t</kbd>, <kbd class="calibre24">f_t</kbd>, and <kbd class="calibre24">k_t</kbd>.</p>
+
+  <p class="notetitle" id="ch06ex26">Listing 6.26. <a id="ch06ex26__title"></a>Pseudocode details of the LSTM architecture (2/2)</p>
+  <pre class="calibre4" id="PLd0e20331">c_t+1 = i_t * k_t + c_t * f_t</pre>
+
+  <p class="noind">Add this as shown in <a href="#ch06fig15">figure 6.15</a>. And that’s it. Not so complicated—merely a tad complex.</p>
+
+  <p class="notetitle" id="ch06fig15">Figure 6.15. <a id="ch06fig15__title"></a>Anatomy of an <kbd class="calibre24">lstm</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig15_alt.jpg"/></p>
+
+  <p class="noind">If you want to get philosophical, you can interpret what each of these operations is meant to do. For instance, you can say that multiplying <kbd class="calibre24">c_t</kbd> and <kbd class="calibre24">f_t</kbd> is a way to deliberately forget irrelevant information in the carry dataflow. Meanwhile, <kbd class="calibre24">i_t</kbd> and <kbd class="calibre24">k_t</kbd> provide information about the present, updating the carry track with new information. But at the end of the day, these interpretations don’t mean much, because what these operations <i class="calibre5">actually</i> do is determined by the contents of the weights parameterizing them; and the weights are learned in an end-to-end fashion, starting over with each training round, making it impossible to credit this or that operation with a specific purpose. The specification of an RNN cell (as just described) determines your hypothesis space—the space in which you’ll search for a good model configuration during training—but it doesn’t determine what the cell does; that is up to the cell weights. The same cell with different weights can be doing very different things. So the combination of operations making up an RNN cell is better interpreted as a set of <i class="calibre5">constraints</i> on your search, not as a <i class="calibre5">design</i> in an engineering sense.</p>
+
+  <p class="noind">To a researcher, it seems that the choice of such constraints—the question of how to implement RNN cells—is better left to optimization algorithms (like genetic algorithms or reinforcement learning processes) than to human engineers. And in the future, that’s how we’ll build networks. In summary: you don’t need to understand anything about the specific architecture of an <kbd class="calibre24">LSTM</kbd> cell; as a human, it shouldn’t be your job to understand it. Just keep in mind what the <kbd class="calibre24">LSTM</kbd> cell is meant to do: allow past information to be reinjected at a later time, thus fighting the vanishing-gradient problem.</p>
+
+  <h3 class="head1" id="ch06lev2sec7">6.2.3. <a id="ch06lev2sec7__title"></a>A concrete LSTM example in Keras</h3>
+
+  <p class="noind">Now let’s switch to more practical concerns: you’ll set up a model using an <kbd class="calibre24">LSTM</kbd> layer and train it on the IMDB data (see <a href="#ch06fig16">figures 6.16</a> and <a href="#ch06fig17">6.17</a>). The network is similar to the one with <kbd class="calibre24">SimpleRNN</kbd> that was just presented. You only specify the output dimensionality of the <kbd class="calibre24">LSTM</kbd> layer; leave every other argument (there are many) at the Keras defaults. Keras has good defaults, and things will almost always “just work” without you having to spend time tuning parameters by hand.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch06fig16">Figure 6.16. <a id="ch06fig16__title"></a>Training and validation loss on IMDB with LSTM</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig16.jpg"/></p>
+
+  <p class="notetitle" id="ch06fig17">Figure 6.17. <a id="ch06fig17__title"></a>Training and validation accuracy on IMDB with LSTM</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig17.jpg"/></p>
+
+  <p class="notetitle" id="ch06ex27">Listing 6.27. <a id="ch06ex27__title"></a>Using the <kbd class="calibre24">LSTM</kbd> layer in Keras</p>
+  <pre class="calibre4" id="PLd0e20449">from keras.layers import LSTM
+
+model = Sequential()
+model.add(Embedding(max_features, 32))
+model.add(LSTM(32))
+model.add(Dense(1, activation='sigmoid'))
+
+model.compile(optimizer='rmsprop',
+              loss='binary_crossentropy',
+              metrics=['acc'])
+history = model.fit(input_train, y_train,
+                    epochs=10,
+                    batch_size=128,
+                    validation_split=0.2)</pre>
+
+  <p class="noind">This time, you achieve up to 89% validation accuracy. Not bad: certainly much better than the <kbd class="calibre24">SimpleRNN</kbd> network—that’s largely because LSTM suffers much less from the vanishing-gradient problem—and slightly better than the fully connected approach from <a href="../Text/03.html#ch03">chapter 3</a>, even though you’re looking at less data than you were in <a href="../Text/03.html#ch03">chapter 3</a>. You’re truncating sequences after 500 timesteps, whereas in <a href="../Text/03.html#ch03">chapter 3</a>, you were considering full sequences.</p>
+
+  <p class="noind">But this result isn’t groundbreaking for such a computationally intensive approach. Why isn’t LSTM performing better? One reason is that you made no effort to tune hyperparameters such as the embeddings dimensionality or the LSTM output dimensionality. Another may be lack of regularization. But honestly, the primary reason is that analyzing the global, long-term structure of the reviews (what LSTM is good at) isn’t helpful for a sentiment-analysis problem. Such a basic problem is well solved by looking at what words occur in each review, and at what frequency. That’s what the first fully connected approach looked at. But there are far more difficult natural--language-processing problems out there, where the strength of LSTM will become apparent: in particular, question-answering and machine translation.</p>
+
+  <h3 class="head1" id="ch06lev2sec8">6.2.4. <a id="ch06lev2sec8__title"></a>Wrapping up</h3>
+
+  <p class="noind"><a id="iddle1068"></a><a id="iddle1815"></a><a id="iddle1817"></a>Now you understand the following:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">What RNNs are and how they work</li>
+
+    <li class="calibre17">What LSTM is, and why it works better on long sequences than a naive RNN</li>
+
+    <li class="calibre17">How to use Keras RNN layers to process sequence data</li>
+  </ul>
+
+  <p class="noind">Next, we’ll review a number of more advanced features of RNNs, which can help you get the most out of your deep-learning sequence models.</p>
+
+  <h2 class="head" id="ch06lev1sec3"><a class="calibre3" id="ch06lev1sec3__title"></a>6.3. Advanced use of recurrent neural networks</h2>
+
+  <p class="noind">In this section, we’ll review three advanced techniques for improving the performance and generalization power of recurrent neural networks. By the end of the section, you’ll know most of what there is to know about using recurrent networks with Keras. We’ll demonstrate all three concepts on a temperature-forecasting problem, where you have access to a timeseries of data points coming from sensors installed on the roof of a building, such as temperature, air pressure, and humidity, which you use to predict what the temperature will be 24 hours after the last data point. This is a fairly challenging problem that exemplifies many common difficulties encountered when working with timeseries.</p>
+
+  <p class="noind">We’ll cover the following techniques:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><b class="calibre22">Recurrent dropout—</b> This is a specific, built-in way to use dropout to fight overfitting in recurrent layers.</li>
+
+    <li class="calibre17"><b class="calibre22">Stacking recurrent layers—</b> This increases the representational power of the network (at the cost of higher computational loads).</li>
+
+    <li class="calibre17"><b class="calibre22">Bidirectional recurrent layers—</b> These present the same information to a recurrent network in different ways, increasing accuracy and mitigating forgetting issues.</li>
+  </ul>
+
+  <h3 class="head1" id="ch06lev2sec9">6.3.1. <a id="ch06lev2sec9__title"></a>A temperature-forecasting problem</h3>
+
+  <p class="noind">Until now, the only sequence data we’ve covered has been text data, such as the IMDB dataset and the Reuters dataset. But sequence data is found in many more problems than just language processing. In all the examples in this section, you’ll play with a weather timeseries dataset recorded at the Weather Station at the Max Planck Institute for Biogeochemistry in Jena, Germany.<sup class="calibre19">[<a href="#ch06fn04" class="calibre13">4</a>]</sup></p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch06fn04" class="calibre13">4</a></sup></p>
+
+    <div class="calibre21">
+      Olaf Kolle, <a href="http://www.bgc-jena.mpg.de/wetter">www.bgc-jena.mpg.de/wetter</a>.
+    </div>
+  </blockquote>
+
+  <p class="noind">In this dataset, 14 different quantities (such as air temperature, atmospheric pressure, humidity, wind direction, and so on) were recorded every 10 minutes, over several years. The original data goes back to 2003, but this example is limited to data from 2009–2016. This dataset is perfect for learning to work with numerical timeseries. You’ll use it to build a model that takes as input some data from the recent past (a few days’ worth of data points) and predicts the air temperature 24 hours in the future.</p>
+
+  <p class="noind">Download and uncompress the data as follows:</p>
+  <pre class="calibre4" id="PLd0e20585">cd ~/Downloads
+mkdir jena_climate
+cd jena_climate
+wget https://s3.amazonaws.com/keras-datasets/jena_climate_2009_2016.csv.zip
+unzip jena_climate_2009_2016.csv.zip</pre>
+
+  <p class="noind">Let’s look at the data.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch06ex28">Listing 6.28. <a id="ch06ex28__title"></a>Inspecting the data of the Jena weather dataset</p>
+  <pre class="calibre4" id="PLd0e20599">import os
+
+data_dir = '/users/fchollet/Downloads/jena_climate'
+fname = os.path.join(data_dir, 'jena_climate_2009_2016.csv')
+
+f = open(fname)
+data = f.read()
+f.close()
+
+lines = data.split('\n')
+header = lines[0].split(',')
+lines = lines[1:]
+
+print(header)
+print(len(lines))</pre>
+
+  <p class="noind">This outputs a count of 420,551 lines of data (each line is a timestep: a record of a date and 14 weather-related values), as well as the following header:</p>
+  <pre class="calibre4" id="PLd0e20608">["Date Time",
+ "p (mbar)",
+ "T (degC)",
+ "Tpot (K)",
+ "Tdew (degC)",
+ "rh (%)",
+ "VPmax (mbar)",
+ "VPact (mbar)",
+ "VPdef (mbar)",
+ "sh (g/kg)",
+ "H2OC (mmol/mol)",
+ "rho (g/m**3)",
+ "wv (m/s)",
+ "max. wv (m/s)",
+ "wd (deg)"]</pre>
+
+  <p class="noind">Now, convert all 420,551 lines of data into a Numpy array.</p>
+
+  <p class="notetitle" id="ch06ex29">Listing 6.29. <a id="ch06ex29__title"></a>Parsing the data</p>
+  <pre class="calibre4" id="PLd0e20620">import numpy as np
+
+float_data = np.zeros((len(lines), len(header) - 1))
+for i, line in enumerate(lines):
+    values = [float(x) for x in line.split(',')[1:]]
+    float_data[i, :] = values</pre>
+
+  <p class="noind">For instance, here is the plot of temperature (in degrees Celsius) over time (see <a href="#ch06fig18">figure 6.18</a>). On this plot, you can clearly see the yearly periodicity of temperature.</p>
+
+  <p class="notetitle" id="ch06fig18">Figure 6.18. <a id="ch06fig18__title"></a>Temperature over the full temporal range of the dataset (°C)</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig18.jpg"/></p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch06ex30">Listing 6.30. <a id="ch06ex30__title"></a>Plotting the temperature timeseries</p>
+  <pre class="calibre4" id="PLd0e20652">from matplotlib import pyplot as plt
+
+temp = float_data[:, 1]  <span class="cambriamathin">❶</span>
+plt.plot(range(len(temp)), temp)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> temperature (in degrees Celsius)</p>
+  </div>
+
+  <p class="noind"><a id="iddle1158"></a><a id="iddle1526"></a><a id="iddle1829"></a><a id="iddle1986"></a>Here is a more narrow plot of the first 10 days of temperature data (see <a href="#ch06fig19">figure 6.19</a>). Because the data is recorded every 10 minutes, you get 144 data points per day.</p>
+
+  <p class="notetitle" id="ch06fig19">Figure 6.19. <a id="ch06fig19__title"></a>Temperature over the first 10 days of the dataset (°C)</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig19.jpg"/></p>
+
+  <p class="notetitle" id="ch06ex31">Listing 6.31. <a id="ch06ex31__title"></a>Plotting the first 10 days of the temperature timeseries</p>
+  <pre class="calibre4" id="PLd0e20709">plt.plot(range(1440), temp[:1440])</pre>
+
+  <p class="noind"><a id="iddle1064"></a><a id="iddle1338"></a>On this plot, you can see daily periodicity, especially evident for the last 4 days. Also note that this 10-day period must be coming from a fairly cold winter month.</p>
+
+  <p class="noind">If you were trying to predict average temperature for the next month given a few months of past data, the problem would be easy, due to the reliable year-scale periodicity of the data. But looking at the data over a scale of days, the temperature looks a lot more chaotic. Is this timeseries predictable at a daily scale? Let’s find out.</p>
+
+  <h3 class="head1" id="ch06lev2sec10">6.3.2. <a id="ch06lev2sec10__title"></a>Preparing the data</h3>
+
+  <p class="noind">The exact formulation of the problem will be as follows: given data going as far back as <kbd class="calibre24">lookback</kbd> timesteps (a timestep is 10 minutes) and sampled every <kbd class="calibre24">steps</kbd> timesteps, can you predict the temperature in <kbd class="calibre24">delay</kbd> timesteps? You’ll use the following parameter values:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><kbd class="calibre24">lookback = 720</kbd>—Observations will go back 5 days.</li>
+
+    <li class="calibre17"><kbd class="calibre24">steps = 6</kbd>—Observations will be sampled at one data point per hour.</li>
+
+    <li class="calibre17"><kbd class="calibre24">delay = 144</kbd>—Targets will be 24 hours in the future.</li>
+  </ul>
+
+  <p class="noind">To get started, you need to do two things:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Preprocess the data to a format a neural network can ingest. This is easy: the data is already numerical, so you don’t need to do any vectorization. But each timeseries in the data is on a different scale (for example, temperature is typically between -20 and +30, but atmospheric pressure, measured in mbar, is around 1,000). You’ll normalize each timeseries independently so that they all take small values on a similar scale.</li>
+
+    <li class="calibre17">Write a Python generator that takes the current array of float data and yields batches of data from the recent past, along with a target temperature in the future. Because the samples in the dataset are highly redundant (sample <i class="calibre5">N</i> and sample <i class="calibre5">N</i> + 1 will have most of their timesteps in common), it would be wasteful to explicitly allocate every sample. Instead, you’ll generate the samples on the fly using the original data.</li>
+  </ul>
+
+  <p class="noind">You’ll preprocess the data by subtracting the mean of each timeseries and dividing by the standard deviation. You’re going to use the first 200,000 timesteps as training data, so compute the mean and standard deviation only on this fraction of the data.</p>
+
+  <p class="notetitle" id="ch06ex32">Listing 6.32. <a id="ch06ex32__title"></a>Normalizing the data</p>
+  <pre class="calibre4" id="PLd0e20802">mean = float_data[:200000].mean(axis=0)
+float_data -= mean
+std = float_data[:200000].std(axis=0)
+float_data /= std</pre>
+
+  <p class="noind"><a href="#ch06ex33">Listing 6.33</a> shows the data generator you’ll use. It yields a tuple <kbd class="calibre24">(samples, targets)</kbd>, where <kbd class="calibre24">samples</kbd> is one batch of input data and <kbd class="calibre24">targets</kbd> is the corresponding array of target temperatures. It takes the following arguments:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><a id="iddle1586"></a><a id="iddle1722"></a><a id="iddle1828"></a><kbd class="calibre24">data</kbd>—The original array of floating-point data, which you normalized in <a href="#ch06ex32">listing 6.32</a>.</li>
+
+    <li class="calibre17"><kbd class="calibre24">lookback</kbd>—How many timesteps back the input data should go.</li>
+
+    <li class="calibre17"><kbd class="calibre24">delay</kbd>—How many timesteps in the future the target should be.</li>
+
+    <li class="calibre17"><kbd class="calibre24">min_index</kbd> and <kbd class="calibre24">max_index</kbd>—Indices in the <kbd class="calibre24">data</kbd> array that delimit which timesteps to draw from. This is useful for keeping a segment of the data for validation and another for testing.</li>
+
+    <li class="calibre17"><kbd class="calibre24">shuffle</kbd>—Whether to shuffle the samples or draw them in chronological order.</li>
+
+    <li class="calibre17"><kbd class="calibre24">batch_size</kbd>—The number of samples per batch.</li>
+
+    <li class="calibre17"><kbd class="calibre24">step</kbd>—The period, in timesteps, at which you sample data. You’ll set it to 6 in order to draw one data point every hour.</li>
+  </ul>
+
+  <p class="notetitle" id="ch06ex33">Listing 6.33. <a id="ch06ex33__title"></a>Generator yielding timeseries samples and their targets</p>
+  <pre class="calibre4" id="PLd0e20907">def generator(data, lookback, delay, min_index, max_index,
+              shuffle=False, batch_size=128, step=6):
+    if max_index is None:
+        max_index = len(data) - delay - 1
+    i = min_index + lookback
+    while 1:
+        if shuffle:
+            rows = np.random.randint(
+                min_index + lookback, max_index, size=batch_size)
+        else:
+            if i + batch_size &gt;= max_index:
+                i = min_index + lookback
+            rows = np.arange(i, min(i + batch_size, max_index))
+            i += len(rows)
+
+        samples = np.zeros((len(rows),
+                           lookback // step,
+                           data.shape[-1]))
+        targets = np.zeros((len(rows),))
+        for j, row in enumerate(rows):
+            indices = range(rows[j] - lookback, rows[j], step)
+            samples[j] = data[indices]
+            targets[j] = data[rows[j] + delay][1]
+        yield samples, targets</pre>
+
+  <p class="noind">Now, let’s use the abstract <kbd class="calibre24">generator</kbd> function to instantiate three generators: one for training, one for validation, and one for testing. Each will look at different temporal segments of the original data: the training generator looks at the first 200,000 timesteps, the validation generator looks at the following 100,000, and the test generator looks at the remainder.</p>
+
+  <p class="notetitle" id="ch06ex34">Listing 6.34. <a id="ch06ex34__title"></a>Preparing the training, validation, and test generators</p>
+  <pre class="calibre4" id="PLd0e20922">lookback = 1440
+step = 6
+delay = 144
+batch_size = 128
+train_gen = generator(float_data,
+                      lookback=lookback,
+                      delay=delay,
+                      min_index=0,
+                      max_index=200000,
+                      shuffle=True,
+                      step=step,
+                      batch_size=batch_size)
+val_gen = generator(float_data,
+                    lookback=lookback,
+                    delay=delay,
+                    min_index=200001,
+                    max_index=300000,
+                    step=step,
+                    batch_size=batch_size)
+test_gen = generator(float_data,
+                     lookback=lookback,
+                     delay=delay,
+                     min_index=300001,
+                     max_index=None,
+                     step=step,
+                     batch_size=batch_size)
+
+val_stseps = (300000 - 200001 - lookback) // batch_size            <span class="cambriamathin">❶</span>
+
+tes_steps = (len(float_data) - 300001 - lookback) // batch_size    <span class="cambriamathin">❷</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1231"></a><a id="iddle1545"></a><a id="iddle1821"></a><span class="cambriamathin1">❶</span> How many steps to draw from val_gen in order to see the entire validation set</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> How many steps to draw from test_gen in order to see the entire test set</p>
+  </div>
+
+  <h3 class="head1" id="ch06lev2sec11">6.3.3. <a id="ch06lev2sec11__title"></a>A common-sense, non-machine-learning baseline</h3>
+
+  <p class="noind">Before you start using black-box deep-learning models to solve the temperature--prediction problem, let’s try a simple, common-sense approach. It will serve as a sanity check, and it will establish a baseline that you’ll have to beat in order to demonstrate the usefulness of more-advanced machine-learning models. Such common-sense baselines can be useful when you’re approaching a new problem for which there is no known solution (yet). A classic example is that of unbalanced classification tasks, where some classes are much more common than others. If your dataset contains 90% instances of class A and 10% instances of class B, then a common-sense approach to the classification task is to always predict “A” when presented with a new sample. Such a classifier is 90% accurate overall, and any learning-based approach should therefore beat this 90% score in order to demonstrate usefulness. Sometimes, such elementary baselines can prove surprisingly hard to beat.</p>
+
+  <p class="noind">In this case, the temperature timeseries can safely be assumed to be continuous (the temperatures tomorrow are likely to be close to the temperatures today) as well as periodical with a daily period. Thus a common-sense approach is to always predict that the temperature 24 hours from now will be equal to the temperature right now. Let’s evaluate this approach, using the mean absolute error (MAE) metric:</p>
+  <pre class="calibre4" id="PLd0e20989">np.mean(np.abs(preds - targets))</pre>
+
+  <p class="noind">Here’s the evaluation loop.</p>
+
+  <p class="notetitle" id="ch06ex35">Listing 6.35. <a id="ch06ex35__title"></a>Computing the common-sense baseline MAE</p>
+  <pre class="calibre4" id="PLd0e21003">def evaluate_naive_method():
+    batch_maes = []
+    for step in range(val_steps):
+        samples, targets = next(val_gen)
+        preds = samples[:, -1, 1]
+        mae = np.mean(np.abs(preds - targets))
+        batch_maes.append(mae)
+    print(np.mean(batch_maes))
+
+evaluate_naive_method()</pre>
+
+  <p class="noind">This yields an MAE of 0.29. Because the temperature data has been normalized to be centered on 0 and have a standard deviation of 1, this number isn’t immediately interpretable. It translates to an average absolute error of 0.29 × <kbd class="calibre24">temperature_std</kbd> degrees Celsius: 2.57°C.</p>
+
+  <p class="notetitle" id="ch06ex36">Listing 6.36. <a id="ch06ex36__title"></a>Converting the MAE back to a Celsius error</p>
+  <pre class="calibre4" id="PLd0e21018">celsius_mae = 0.29 * std[1]</pre>
+
+  <p class="noind">That’s a fairly large average absolute error. Now the game is to use your knowledge of deep learning to do better.</p>
+
+  <h3 class="head1" id="ch06lev2sec12">6.3.4. <a id="ch06lev2sec12__title"></a>A basic machine-learning approach</h3>
+
+  <p class="noind">In the same way that it’s useful to establish a common-sense baseline before trying machine-learning approaches, it’s useful to try simple, cheap machine-learning models (such as small, densely connected networks) before looking into complicated and computationally expensive models such as RNNs. This is the best way to make sure any further complexity you throw at the problem is legitimate and delivers real benefits.</p>
+
+  <p class="noind">The following listing shows a fully connected model that starts by flattening the data and then runs it through two <kbd class="calibre24">Dense</kbd> layers. Note the lack of activation function on the last <kbd class="calibre24">Dense</kbd> layer, which is typical for a regression problem. You use MAE as the loss. Because you evaluate on the exact same data and with the exact same metric you did with the common-sense approach, the results will be directly comparable.</p>
+
+  <p class="notetitle" id="ch06ex37">Listing 6.37. <a id="ch06ex37__title"></a>Training and evaluating a densely connected model</p>
+  <pre class="calibre4" id="PLd0e21048">from keras.models import Sequential
+from keras import layers
+from keras.optimizers import RMSprop
+
+model = Sequential()
+model.add(layers.Flatten(input_shape=(lookback // step, float_data.shape[-1])))
+model.add(layers.Dense(32, activation='relu'))
+model.add(layers.Dense(1))
+model.compile(optimizer=RMSprop(), loss='mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch=500,
+                              epochs=20,
+                              validation_data=val_gen,
+                              validation_steps=val_steps)</pre>
+
+  <p class="noind"><a id="iddle1369"></a><a id="iddle1824"></a>Let’s display the loss curves for validation and training (see <a href="#ch06fig20">figure 6.20</a>).</p>
+
+  <p class="notetitle" id="ch06fig20">Figure 6.20. <a id="ch06fig20__title"></a>Training and validation loss on the Jena temperature-forecasting task with a simple, densely connected network</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig20.jpg"/></p>
+
+  <p class="notetitle" id="ch06ex38">Listing 6.38. <a id="ch06ex38__title"></a>Plotting results</p>
+  <pre class="calibre4" id="PLd0e21093">import matplotlib.pyplot as plt
+
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+epochs = range(1, len(loss) + 1)
+
+plt.figure()
+
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+
+plt.show()</pre>
+
+  <p class="noind">Some of the validation losses are close to the no-learning baseline, but not reliably. This goes to show the merit of having this baseline in the first place: it turns out to be not easy to outperform. Your common sense contains a lot of valuable information that a machine-learning model doesn’t have access to.</p>
+
+  <p class="noind">You may wonder, if a simple, well-performing model exists to go from the data to the targets (the common-sense baseline), why doesn’t the model you’re training find it and improve on it? Because this simple solution isn’t what your training setup is looking for. The space of models in which you’re searching for a solution—that is, your hypothesis space—is the space of all possible two-layer networks with the configuration you defined. These networks are already fairly complicated. When you’re looking for a <a id="iddle1310"></a><a id="iddle1760"></a><a id="iddle1816"></a><a id="iddle1832"></a>solution with a space of complicated models, the simple, well-performing baseline may be unlearnable, even if it’s technically part of the hypothesis space. That is a pretty significant limitation of machine learning in general: unless the learning algorithm is hardcoded to look for a specific kind of simple model, parameter learning can sometimes fail to find a simple solution to a simple problem.</p>
+
+  <h3 class="head1" id="ch06lev2sec13">6.3.5. <a id="ch06lev2sec13__title"></a>A first recurrent baseline</h3>
+
+  <p class="noind">The first fully connected approach didn’t do well, but that doesn’t mean machine learning isn’t applicable to this problem. The previous approach first flattened the timeseries, which removed the notion of time from the input data. Let’s instead look at the data as what it is: a sequence, where causality and order matter. You’ll try a recurrent-sequence processing model—it should be the perfect fit for such sequence data, precisely because it exploits the temporal ordering of data points, unlike the first approach.</p>
+
+  <p class="noind">Instead of the <kbd class="calibre24">LSTM</kbd> layer introduced in the previous section, you’ll use the <kbd class="calibre24">GRU</kbd> layer, developed by Chung et al. in 2014.<sup class="calibre19">[<a href="#ch06fn05" class="calibre13">5</a>]</sup> Gated recurrent unit (GRU) layers work using the same principle as LSTM, but they’re somewhat streamlined and thus cheaper to run (although they may not have as much representational power as LSTM). This trade-off between computational expensiveness and representational power is seen everywhere in machine learning.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch06fn05" class="calibre13">5</a></sup></p>
+
+    <div class="calibre21">
+      Junyoung Chung et al., “Empirical Evaluation of Gated Recurrent Neural Networks on Sequence Modeling,” Conference on Neural Information Processing Systems (2014), <a href="https://arxiv.org/abs/1412.3555">https://arxiv.org/abs/1412.3555</a>.
+    </div>
+  </blockquote>
+
+  <p class="notetitle" id="ch06ex39">Listing 6.39. <a id="ch06ex39__title"></a>Training and evaluating a GRU-based model</p>
+  <pre class="calibre4" id="PLd0e21161">from keras.models import Sequential
+from keras import layers
+from keras.optimizers import RMSprop
+
+model = Sequential()
+model.add(layers.GRU(32, input_shape=(None, float_data.shape[-1])))
+model.add(layers.Dense(1))
+
+model.compile(optimizer=RMSprop(), loss='mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch=500,
+                              epochs=20,
+                              validation_data=val_gen,
+                              validation_steps=val_steps)</pre>
+
+  <p class="noind"><a href="#ch06fig21">Figure 6.21</a> shows the results. Much better! You can significantly beat the common-sense baseline, demonstrating the value of machine learning as well as the superiority of recurrent networks compared to sequence-flattening dense networks on this type of task.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch06fig21">Figure 6.21. <a id="ch06fig21__title"></a>Training and validation loss on the Jena temperature-forecasting task with a GRU</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig21.jpg"/></p>
+
+  <p class="noind"><a id="iddle1509"></a><a id="iddle1831"></a><a id="iddle1920"></a>The new validation MAE of ~0.265 (before you start significantly overfitting) translates to a mean absolute error of 2.35°C after denormalization. That’s a solid gain on the initial error of 2.57°C, but you probably still have a bit of a margin for improvement.</p>
+
+  <h3 class="head1" id="ch06lev2sec14">6.3.6. <a id="ch06lev2sec14__title"></a>Using recurrent dropout to fight overfitting</h3>
+
+  <p class="noind">It’s evident from the training and validation curves that the model is overfitting: the training and validation losses start to diverge considerably after a few epochs. You’re already familiar with a classic technique for fighting this phenomenon: dropout, which randomly zeros out input units of a layer in order to break happenstance correlations in the training data that the layer is exposed to. But how to correctly apply dropout in recurrent networks isn’t a trivial question. It has long been known that applying dropout before a recurrent layer hinders learning rather than helping with regularization. In 2015, Yarin Gal, as part of his PhD thesis on Bayesian deep learning,<sup class="calibre19">[<a href="#ch06fn06" class="calibre13">6</a>]</sup> determined the proper way to use dropout with a recurrent network: the same dropout mask (the same pattern of dropped units) should be applied at every timestep, instead of a dropout mask that varies randomly from timestep to timestep. What’s more, in order to regularize the representations formed by the recurrent gates of layers such as <kbd class="calibre24">GRU</kbd> and <kbd class="calibre24">LSTM</kbd>, a temporally constant dropout mask should be applied to the inner recurrent activations of the layer (a <i class="calibre5">recurrent</i> dropout mask). Using the same dropout mask at every timestep allows the network to properly propagate its learning error through time; a temporally random dropout mask would disrupt this error signal and be harmful to the learning process.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch06fn06" class="calibre13">6</a></sup></p>
+
+    <div class="calibre21">
+      See Yarin Gal, “Uncertainty in Deep Learning (PhD Thesis),” October 13, 2016, <a href="http://mlg.eng.cam.ac.uk/yarin/blog_2248.html">http://mlg.eng.cam.ac.uk/yarin/blog_2248.html</a>.
+    </div>
+  </blockquote>
+
+  <p class="noind">Yarin Gal did his research using Keras and helped build this mechanism directly into Keras recurrent layers. Every recurrent layer in Keras has two dropout-related arguments: <kbd class="calibre24">dropout</kbd>, a float specifying the dropout rate for input units of the layer, and <kbd class="calibre24">recurrent_dropout</kbd>, specifying the dropout rate of the recurrent units. Let’s add dropout and recurrent dropout to the <kbd class="calibre24">GRU</kbd> layer and see how doing so impacts overfitting. Because networks being regularized with dropout always take longer to fully converge, you’ll train the network for twice as many epochs.</p>
+
+  <p class="notetitle" id="ch06ex40">Listing 6.40. <a id="ch06ex40__title"></a>Training and evaluating a dropout-regularized GRU-based model</p>
+  <pre class="calibre4" id="PLd0e21256">from keras.models import Sequential
+from keras import layers
+from keras.optimizers import RMSprop
+
+model = Sequential()
+model.add(layers.GRU(32,
+                     dropout=0.2,
+                     recurrent_dropout=0.2,
+                     input_shape=(None, float_data.shape[-1])))
+model.add(layers.Dense(1))
+
+model.compile(optimizer=RMSprop(), loss='mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch=500,
+                              epochs=40,
+                              validation_data=val_gen,
+                              validation_steps=val_steps)</pre>
+
+  <p class="noind"><a href="#ch06fig22">Figure 6.22</a> shows the results. Success! You’re no longer overfitting during the first 30 epochs. But although you have more stable evaluation scores, your best scores aren’t much lower than they were previously.</p>
+
+  <p class="notetitle" id="ch06fig22">Figure 6.22. <a id="ch06fig22__title"></a>Training and validation loss on the Jena temperature-forecasting task with a dropout-regularized GRU</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig22.jpg"/></p>
+
+  <h3 class="head1" id="ch06lev2sec15">6.3.7. <a id="ch06lev2sec15__title"></a>Stacking recurrent layers</h3>
+
+  <p class="noind">Because you’re no longer overfitting but seem to have hit a performance bottleneck, you should consider increasing the capacity of the network. Recall the description of the universal machine-learning workflow: it’s generally a good idea to increase the capacity of your network until overfitting becomes the primary obstacle (assuming <a id="iddle1822"></a>you’re already taking basic steps to mitigate overfitting, such as using dropout). As long as you aren’t overfitting too badly, you’re likely under capacity.</p>
+
+  <p class="noind">Increasing network capacity is typically done by increasing the number of units in the layers or adding more layers. Recurrent layer stacking is a classic way to build more-powerful recurrent networks: for instance, what currently powers the Google Translate algorithm is a stack of seven large <kbd class="calibre24">LSTM</kbd> layers—that’s huge.</p>
+
+  <p class="noind">To stack recurrent layers on top of each other in Keras, all intermediate layers should return their full sequence of outputs (a 3D tensor) rather than their output at the last timestep. This is done by specifying <kbd class="calibre24">return_sequences=True</kbd>.</p>
+
+  <p class="notetitle" id="ch06ex41">Listing 6.41. <a id="ch06ex41__title"></a>Training and evaluating a dropout-regularized, stacked GRU model</p>
+  <pre class="calibre4" id="PLd0e21314">from keras.models import Sequential
+from keras import layers
+from keras.optimizers import RMSprop
+
+model = Sequential()
+model.add(layers.GRU(32,
+                     dropout=0.1,
+                     recurrent_dropout=0.5,
+                     return_sequences=True,
+                     input_shape=(None, float_data.shape[-1])))
+model.add(layers.GRU(64, activation='relu',
+                     dropout=0.1,
+                     recurrent_dropout=0.5))
+model.add(layers.Dense(1))
+
+model.compile(optimizer=RMSprop(), loss='mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch=500,
+                              epochs=40,
+                              validation_data=val_gen,
+                              validation_steps=val_steps)</pre>
+
+  <p class="noind"><a href="#ch06fig23">Figure 6.23</a> shows the results. You can see that the added layer does improve the results a bit, though not significantly. You can draw two conclusions:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Because you’re still not overfitting too badly, you could safely increase the size of your layers in a quest for validation-loss improvement. This has a non-negligible computational cost, though.</li>
+
+    <li class="calibre17">Adding a layer didn’t help by a significant factor, so you may be seeing diminishing returns from increasing network capacity at this point.</li>
+  </ul>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch06fig23">Figure 6.23. <a id="ch06fig23__title"></a>Training and validation loss on the Jena temperature-forecasting task with a stacked GRU network</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig23.jpg"/></p>
+
+  <h3 class="head1" id="ch06lev2sec16">6.3.8. <a id="ch06lev2sec16__title"></a>Using bidirectional RNNs</h3>
+
+  <p class="noind"><a id="iddle1187"></a>The last technique introduced in this section is called <i class="calibre5">bidirectional RNNs</i>. A bidirectional RNN is a common RNN variant that can offer greater performance than a regular RNN on certain tasks. It’s frequently used in natural-language processing—you could call it the Swiss Army knife of deep learning for natural-language processing.</p>
+
+  <p class="noind">RNNs are notably order dependent, or time dependent: they process the timesteps of their input sequences in order, and shuffling or reversing the timesteps can completely change the representations the RNN extracts from the sequence. This is precisely the reason they perform well on problems where order is meaningful, such as the temperature-forecasting problem. A bidirectional RNN exploits the order sensitivity of RNNs: it consists of using two regular RNNs, such as the <kbd class="calibre24">GRU</kbd> and <kbd class="calibre24">LSTM</kbd> layers you’re already familiar with, each of which processes the input sequence in one direction (chronologically and antichronologically), and then merging their representations. By processing a sequence both ways, a bidirectional RNN can catch patterns that may be overlooked by a unidirectional RNN.</p>
+
+  <p class="noind">Remarkably, the fact that the RNN layers in this section have processed sequences in chronological order (older timesteps first) may have been an arbitrary decision. At least, it’s a decision we made no attempt to question so far. Could the RNNs have performed well enough if they processed input sequences in antichronological order, for instance (newer timesteps first)? Let’s try this in practice and see what happens. All you need to do is write a variant of the data generator where the input sequences are reverted along the time dimension (replace the last line with <kbd class="calibre24">yield samples[:, ::-1, :], targets</kbd>). Training the same one-<kbd class="calibre24">GRU</kbd>-layer network that you used in the first experiment in this section, you get the results shown in <a href="#ch06fig24">figure 6.24</a>.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch06fig24">Figure 6.24. <a id="ch06fig24__title"></a>Training and validation loss on the Jena temperature-forecasting task with a GRU trained on reversed sequences</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig24.jpg"/></p>
+
+  <p class="noind">The reversed-order GRU strongly underperforms even the common-sense baseline, indicating that in this case, chronological processing is important to the success of your approach. This makes perfect sense: the underlying <kbd class="calibre24">GRU</kbd> layer will typically be better at remembering the recent past than the distant past, and naturally the more recent weather data points are more predictive than older data points for the problem (that’s what makes the common-sense baseline fairly strong). Thus the chronological version of the layer is bound to outperform the reversed-order version. Importantly, this isn’t true for many other problems, including natural language: intuitively, the importance of a word in understanding a sentence isn’t usually dependent on its position in the sentence. Let’s try the same trick on the LSTM IMDB example from <a href="#ch06lev1sec2">section 6.2</a>.</p>
+
+  <p class="notetitle" id="ch06ex42">Listing 6.42. <a id="ch06ex42__title"></a>Training and evaluating an <kbd class="calibre24">LSTM</kbd> using reversed sequences</p>
+  <pre class="calibre4" id="PLd0e21422">from keras.datasets import imdb
+from keras.preprocessing import sequence
+from keras import layers
+from keras.models import Sequential
+
+max_features = 10000                                             <span class="cambriamathin">❶</span>
+maxlen = 500                                                     <span class="cambriamathin">❷</span>
+
+(x_train, y_train), (x_test, y_test) = imdb.load_data(
+    num_words=max_features)                                      <span class="cambriamathin">❸</span>
+
+x_train = [x[::-1] for x in x_train]                             <span class="cambriamathin">❹</span>
+x_test = [x[::-1] for x in x_test]                               <span class="cambriamathin">❹</span>
+
+x_train = sequence.pad_sequences(x_train, maxlen=maxlen)         <span class="cambriamathin">❺</span>
+x_test = sequence.pad_sequences(x_test, maxlen=maxlen)           <span class="cambriamathin">❺</span>
+
+model = Sequential()
+model.add(layers.Embedding(max_features, 128))
+model.add(layers.LSTM(32))
+model.add(layers.Dense(1, activation='sigmoid'))
+
+model.compile(optimizer='rmsprop',
+              loss='binary_crossentropy',
+              metrics=['acc'])
+history = model.fit(x_train, y_train,
+                    epochs=10,
+                    batch_size=128,
+                    validation_split=0.2)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1855"></a><span class="cambriamathin1">❶</span> Number of words to consider as features</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Cuts off texts after this number of words (among the max_features most common words)</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Loads data</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Reverses sequences</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Pads sequences</p>
+  </div>
+
+  <p class="noind">You get performance nearly identical to that of the chronological-order <kbd class="calibre24">LSTM</kbd>. Remarkably, on such a text dataset, reversed-order processing works just as well as chronological processing, confirming the hypothesis that, although word order <i class="calibre5">does</i> matter in understanding language, <i class="calibre5">which</i> order you use isn’t crucial. Importantly, an RNN trained on reversed sequences will learn different representations than one trained on the original sequences, much as you would have different mental models if time flowed backward in the real world—if you lived a life where you died on your first day and were born on your last day. In machine learning, representations that are <i class="calibre5">different</i> yet <i class="calibre5">useful</i> are always worth exploiting, and the more they differ, the better: they offer a new angle from which to look at your data, capturing aspects of the data that were missed by other approaches, and thus they can help boost performance on a task. This is the intuition behind <i class="calibre5">ensembling</i>, a concept we’ll explore in <a href="../Text/07.html#ch07">chapter 7</a>.</p>
+
+  <p class="noind">A bidirectional RNN exploits this idea to improve on the performance of chronological-order RNNs. It looks at its input sequence both ways (see <a href="#ch06fig25">figure 6.25</a>), obtaining potentially richer representations and capturing patterns that may have been missed by the chronological-order version alone.</p>
+
+  <p class="notetitle" id="ch06fig25">Figure 6.25. <a id="ch06fig25__title"></a>How a bidirectional RNN layer works</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig25.jpg"/></p>
+
+  <p class="noind">To instantiate a bidirectional RNN in Keras, you use the <kbd class="calibre24">Bidirectional</kbd> layer, which takes as its first argument a recurrent layer instance. <kbd class="calibre24">Bidirectional</kbd> creates a second, separate instance of this recurrent layer and uses one instance for processing the input sequences in chronological order and the other instance for processing the input sequences in reversed order. Let’s try it on the IMDB sentiment-analysis task.</p>
+
+  <p class="notetitle" id="ch06ex43">Listing 6.43. <a id="ch06ex43__title"></a>Training and evaluating a bidirectional <kbd class="calibre24">LSTM</kbd></p>
+  <pre class="calibre4" id="PLd0e21567">model = Sequential()
+model.add(layers.Embedding(max_features, 32))
+model.add(layers.Bidirectional(layers.LSTM(32)))
+model.add(layers.Dense(1, activation='sigmoid'))
+
+model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['acc'])
+history = model.fit(x_train, y_train,
+                    epochs=10,
+                    batch_size=128,
+                    validation_split=0.2)</pre>
+
+  <p class="noind">It performs slightly better than the regular <kbd class="calibre24">LSTM</kbd> you tried in the previous section, achieving over 89% validation accuracy. It also seems to overfit more quickly, which is unsurprising because a bidirectional layer has twice as many parameters as a chronological <kbd class="calibre24">LSTM</kbd>. With some regularization, the bidirectional approach would likely be a strong performer on this task.</p>
+
+  <p class="noind">Now let’s try the same approach on the temperature-prediction task.</p>
+
+  <p class="notetitle" id="ch06ex44">Listing 6.44. <a id="ch06ex44__title"></a>Training a bidirectional <kbd class="calibre24">GRU</kbd></p>
+  <pre class="calibre4" id="PLd0e21590">from keras.models import Sequential
+from keras import layers
+from keras.optimizers import RMSprop
+
+model = Sequential()
+model.add(layers.Bidirectional(
+    layers.GRU(32), input_shape=(None, float_data.shape[-1])))
+model.add(layers.Dense(1))
+
+model.compile(optimizer=RMSprop(), loss='mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch=500,
+                              epochs=40,
+                              validation_data=val_gen,
+                              validation_steps=val_steps)</pre>
+
+  <p class="noind">This performs about as well as the regular <kbd class="calibre24">GRU</kbd> layer. It’s easy to understand why: all the predictive capacity must come from the chronological half of the network, because the antichronological half is known to be severely underperforming on this task (again, because the recent past matters much more than the distant past in this case).</p>
+
+  <h3 class="head1" id="ch06lev2sec17">6.3.9. <a id="ch06lev2sec17__title"></a>Going even further</h3>
+
+  <p class="noind">There are many other things you could try, in order to improve performance on the temperature-forecasting problem:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Adjust the number of units in each recurrent layer in the stacked setup. The current choices are largely arbitrary and thus probably suboptimal.</li>
+
+    <li class="calibre17">Adjust the learning rate used by the <kbd class="calibre24">RMSprop</kbd> optimizer.</li>
+
+    <li class="calibre17">Try using <kbd class="calibre24">LSTM</kbd> layers instead of <kbd class="calibre24">GRU</kbd> layers.</li>
+
+    <li class="calibre17">Try using a bigger densely connected regressor on top of the recurrent layers: that is, a bigger <kbd class="calibre24">Dense</kbd> layer or even a stack of <kbd class="calibre24">Dense</kbd> layers.</li>
+
+    <li class="calibre17">Don’t forget to eventually run the best-performing models (in terms of validation MAE) on the test set! Otherwise, you’ll develop architectures that are overfitting to the validation set.</li>
+  </ul>
+
+  <p class="noind">As always, deep learning is more an art than a science. We can provide guidelines that suggest what is likely to work or not work on a given problem, but, ultimately, every problem is unique; you’ll have to evaluate different strategies empirically. There is currently no theory that will tell you in advance precisely what you should do to optimally solve a problem. You must iterate.</p>
+
+  <h3 class="head1" id="ch06lev2sec18">6.3.10. <a id="ch06lev2sec18__title"></a>Wrapping up</h3>
+
+  <p class="noind">Here’s what you should take away from this section:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">As you first learned in <a href="../Text/04.html#ch04">chapter 4</a>, when approaching a new problem, it’s good to first establish common-sense baselines for your metric of choice. If you don’t have a baseline to beat, you can’t tell whether you’re making real progress.</li>
+
+    <li class="calibre17">Try simple models before expensive ones, to justify the additional expense. Sometimes a simple model will turn out to be your best option.</li>
+
+    <li class="calibre17">When you have data where temporal ordering matters, recurrent networks are a great fit and easily outperform models that first flatten the temporal data.</li>
+
+    <li class="calibre17">To use dropout with recurrent networks, you should use a time-constant dropout mask and recurrent dropout mask. These are built into Keras recurrent layers, so all you have to do is use the <kbd class="calibre24">dropout</kbd> and <kbd class="calibre24">recurrent_dropout</kbd> arguments of recurrent layers.</li>
+
+    <li class="calibre17">Stacked RNNs provide more representational power than a single RNN layer. They’re also much more expensive and thus not always worth it. Although they offer clear gains on complex problems (such as machine translation), they may not always be relevant to smaller, simpler problems.</li>
+
+    <li class="calibre17">Bidirectional RNNs, which look at a sequence both ways, are useful on natural-language processing problems. But they aren’t strong performers on sequence data where the recent past is much more informative than the beginning of the sequence.</li>
+  </ul>
+  <hr class="calibre25"/>
+
+  <p class="notetitle" id="ch06note02">Note</p>
+
+  <p class="noindclose">There are two important concepts we won’t cover in detail here: recurrent attention and sequence masking. Both tend to be especially relevant for natural-language processing, and they aren’t particularly applicable to the temperature-forecasting problem. We’ll leave them for future study outside of this book.</p>
+  <hr class="calibre25"/>
+
+  <p class="noind"></p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch06sb02">Markets and machine learning</b>
+
+    <p class="noind"><a id="iddle1004"></a><a id="iddle1116"></a><a id="iddle1136"></a><a id="iddle1797"></a><a id="iddle1798"></a><a id="iddle1882"></a><a id="iddle1883"></a>Some readers are bound to want to take the techniques we’ve introduced here and try them on the problem of forecasting the future price of securities on the stock market (or currency exchange rates, and so on). Markets have <i class="calibre5">very different statistical characteristics</i> than natural phenomena such as weather patterns. Trying to use machine learning to beat markets, when you only have access to publicly available data, is a difficult endeavor, and you’re likely to waste your time and resources with nothing to show for it.</p>
+
+    <p class="noind">Always remember that when it comes to markets, past performance is <i class="calibre5">not</i> a good predictor of future returns—looking in the rear-view mirror is a bad way to drive. Machine learning, on the other hand, is applicable to datasets where the past <i class="calibre5">is</i> a good predictor of the future.</p>
+  </div>
+  <hr class="calibre25"/>
+
+  <h2 class="head" id="ch06lev1sec4"><a class="calibre3" id="ch06lev1sec4__title"></a>6.4. Sequence processing with convnets</h2>
+
+  <p class="noind"><a id="iddle1005"></a><a id="iddle1106"></a><a id="iddle1111"></a><a id="iddle1594"></a><a id="iddle1773"></a><a id="iddle1799"></a><a id="iddle1801"></a><a id="iddle1884"></a><a id="iddle1886"></a>In <a href="../Text/05.html#ch05">chapter 5</a>, you learned about convolutional neural networks (convnets) and how they perform particularly well on computer vision problems, due to their ability to operate <i class="calibre5">convolutionally</i>, extracting features from local input patches and allowing for representation modularity and data efficiency. The same properties that make convnets excel at computer vision also make them highly relevant to sequence processing. Time can be treated as a spatial dimension, like the height or width of a 2D image.</p>
+
+  <p class="noind">Such 1D convnets can be competitive with RNNs on certain sequence-processing problems, usually at a considerably cheaper computational cost. Recently, 1D convnets, typically used with dilated kernels, have been used with great success for audio generation and machine translation. In addition to these specific successes, it has long been known that small 1D convnets can offer a fast alternative to RNNs for simple tasks such as text classification and timeseries forecasting.</p>
+
+  <h3 class="head1" id="ch06lev2sec19">6.4.1. <a id="ch06lev2sec19__title"></a>Understanding 1D convolution for sequence data</h3>
+
+  <p class="noind">The convolution layers introduced previously were 2D convolutions, extracting 2D patches from image tensors and applying an identical transformation to every patch. In the same way, you can use 1D convolutions, extracting local 1D patches (subsequences) from sequences (see <a href="#ch06fig26">figure 6.26</a>).</p>
+
+  <p class="notetitle" id="ch06fig26">Figure 6.26. <a id="ch06fig26__title"></a>How 1D convolution works: each output timestep is obtained from a temporal patch in the input sequence.</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig26.jpg"/></p>
+
+  <p class="noind">Such 1D convolution layers can recognize local patterns in a sequence. Because the same input transformation is performed on every patch, a pattern learned at a certain position in a sentence can later be recognized at a different position, making 1D convnets translation invariant (for temporal translations). For instance, a 1D convnet processing sequences of characters using convolution windows of size 5 should be able to learn words or word fragments of length 5 or less, and it should be able to recognize these words in any context in an input sequence. A character-level 1D convnet is thus able to learn about word morphology.</p>
+
+  <h3 class="head1" id="ch06lev2sec20">6.4.2. <a id="ch06lev2sec20__title"></a>1D pooling for sequence data</h3>
+
+  <p class="noind">You’re already familiar with 2D pooling operations, such as 2D average pooling and max pooling, used in convnets to spatially downsample image tensors. The 2D pooling operation has a 1D equivalent: extracting 1D patches (subsequences) from an input and outputting the maximum value (max pooling) or average value (average pooling). Just as with 2D convnets, this is used for reducing the length of 1D inputs (<i class="calibre5">subsampling</i>).</p>
+
+  <h3 class="head1" id="ch06lev2sec21">6.4.3. <a id="ch06lev2sec21__title"></a>Implementing a 1D convnet</h3>
+
+  <p class="noind">In Keras, you use a 1D convnet via the <kbd class="calibre24">Conv1D</kbd> layer, which has an interface similar to <kbd class="calibre24">Conv2D</kbd>. It takes as input 3D tensors with shape <kbd class="calibre24">(samples, time, features)</kbd> and returns similarly shaped 3D tensors. The convolution window is a 1D window on the temporal axis: axis 1 in the input tensor.</p>
+
+  <p class="noind">Let’s build a simple two-layer 1D convnet and apply it to the IMDB sentiment--classification task you’re already familiar with. As a reminder, this is the code for obtaining and preprocessing the data.</p>
+
+  <p class="notetitle" id="ch06ex45">Listing 6.45. <a id="ch06ex45__title"></a>Preparing the IMDB data</p>
+  <pre class="calibre4" id="PLd0e21934">from keras.datasets import imdb
+from keras.preprocessing import sequence
+
+max_features = 10000
+max_len = 500
+
+print('Loading data...')
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+print(len(x_train), 'train sequences')
+print(len(x_test), 'test sequences')
+
+print('Pad sequences (samples x time)')
+x_train = sequence.pad_sequences(x_train, maxlen=max_len)
+x_test = sequence.pad_sequences(x_test, maxlen=max_len)
+print('x_train shape:', x_train.shape)
+print('x_test shape:', x_test.shape)</pre>
+
+  <p class="noind">1D convnets are structured in the same way as their 2D counterparts, which you used in <a href="../Text/05.html#ch05">chapter 5</a>: they consist of a stack of <kbd class="calibre24">Conv1D</kbd> and <kbd class="calibre24">MaxPooling1D</kbd> layers, ending in either a global pooling layer or a <kbd class="calibre24">Flatten</kbd> layer, that turn the 3D outputs into 2D outputs, allowing you to add one or more <kbd class="calibre24">Dense</kbd> layers to the model for classification or regression.</p>
+
+  <p class="noind">One difference, though, is the fact that you can afford to use larger convolution windows with 1D convnets. With a 2D convolution layer, a 3 × 3 convolution window contains 3 × 3 = 9 feature vectors; but with a 1D convolution layer, a convolution window of size 3 contains only 3 feature vectors. You can thus easily afford 1D convolution windows of size 7 or 9.</p>
+
+  <p class="noind"><a id="iddle1112"></a><a id="iddle1800"></a><a id="iddle1823"></a><a id="iddle1885"></a>This is the example 1D convnet for the IMDB dataset.</p>
+
+  <p class="notetitle" id="ch06ex46">Listing 6.46. <a id="ch06ex46__title"></a>Training and evaluating a simple 1D convnet on the IMDB data</p>
+  <pre class="calibre4" id="PLd0e22000">from keras.models import Sequential
+from keras import layers
+from keras.optimizers import RMSprop
+
+model = Sequential()
+model.add(layers.Embedding(max_features, 128, input_length=max_len))
+model.add(layers.Conv1D(32, 7, activation='relu'))
+model.add(layers.MaxPooling1D(5))
+model.add(layers.Conv1D(32, 7, activation='relu'))
+model.add(layers.GlobalMaxPooling1D())
+model.add(layers.Dense(1))
+
+model.summary()
+
+model.compile(optimizer=RMSprop(lr=1e-4),
+              loss='binary_crossentropy',
+              metrics=['acc'])
+history = model.fit(x_train, y_train,
+                    epochs=10,
+                    batch_size=128,
+                    validation_split=0.2)</pre>
+
+  <p class="noind"><a href="#ch06fig27">Figures 6.27</a> and <a href="#ch06fig28">6.28</a> show the training and validation results. Validation accuracy is somewhat less than that of the <kbd class="calibre24">LSTM</kbd>, but runtime is faster on both CPU and GPU (the exact increase in speed will vary greatly depending on your exact configuration). At this point, you could retrain this model for the right number of epochs (four) and run it on the test set. This is a convincing demonstration that a 1D convnet can offer a fast, cheap alternative to a recurrent network on a word-level sentiment-classification task.</p>
+
+  <p class="notetitle" id="ch06fig27">Figure 6.27. <a id="ch06fig27__title"></a>Training and validation loss on IMDB with a simple 1D convnet</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig27.jpg"/></p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch06fig28">Figure 6.28. <a id="ch06fig28__title"></a>Training and validation accuracy on IMDB with a simple 1D convnet</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig28.jpg"/></p>
+
+  <h3 class="head1" id="ch06lev2sec22">6.4.4. <a id="ch06lev2sec22__title"></a>Combining CNNs and RNNs to process long sequences</h3>
+
+  <p class="noind">Because 1D convnets process input patches independently, they aren’t sensitive to the order of the timesteps (beyond a local scale, the size of the convolution windows), unlike RNNs. Of course, to recognize longer-term patterns, you can stack many convolution layers and pooling layers, resulting in upper layers that will see long chunks of the original inputs—but that’s still a fairly weak way to induce order sensitivity. One way to evidence this weakness is to try 1D convnets on the temperature-forecasting problem, where order-sensitivity is key to producing good predictions. The following example reuses the following variables defined previously: <kbd class="calibre24">float_data</kbd>, <kbd class="calibre24">train_gen</kbd>, <kbd class="calibre24">val_gen</kbd>, and <kbd class="calibre24">val_steps</kbd>.</p>
+
+  <p class="notetitle" id="ch06ex47">Listing 6.47. <a id="ch06ex47__title"></a>Training and evaluating a simple 1D convnet on the Jena data</p>
+  <pre class="calibre4" id="PLd0e22070">from keras.models import Sequential
+from keras import layers
+from keras.optimizers import RMSprop
+
+model = Sequential()
+model.add(layers.Conv1D(32, 5, activation='relu',
+                        input_shape=(None, float_data.shape[-1])))
+model.add(layers.MaxPooling1D(3))
+model.add(layers.Conv1D(32, 5, activation='relu'))
+model.add(layers.MaxPooling1D(3))
+model.add(layers.Conv1D(32, 5, activation='relu'))
+model.add(layers.GlobalMaxPooling1D())
+model.add(layers.Dense(1))
+
+model.compile(optimizer=RMSprop(), loss='mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch=500,
+                              epochs=20,
+                              validation_data=val_gen,
+                              validation_steps=val_steps)</pre>
+
+  <p class="noind"><a id="iddle1339"></a><a id="iddle1525"></a><a href="#ch06fig29">Figure 6.29</a> shows the training and validation MAEs.</p>
+
+  <p class="notetitle" id="ch06fig29">Figure 6.29. <a id="ch06fig29__title"></a>Training and validation loss on the Jena temperature-forecasting task with a simple 1D convnet</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig29.jpg"/></p>
+
+  <p class="noind">The validation MAE stays in the 0.40s: you can’t even beat the common-sense baseline using the small convnet. Again, this is because the convnet looks for patterns anywhere in the input timeseries and has no knowledge of the temporal position of a pattern it sees (toward the beginning, toward the end, and so on). Because more recent data points should be interpreted differently from older data points in the case of this specific forecasting problem, the convnet fails at producing meaningful results. This limitation of convnets isn’t an issue with the IMDB data, because patterns of keywords associated with a positive or negative sentiment are informative independently of where they’re found in the input sentences.</p>
+
+  <p class="noind">One strategy to combine the speed and lightness of convnets with the order--sensitivity of RNNs is to use a 1D convnet as a preprocessing step before an RNN (see <a href="#ch06fig30">figure 6.30</a>). This is especially beneficial when you’re dealing with sequences that are so long they can’t realistically be processed with RNNs, such as sequences with thousands of steps. The convnet will turn the long input sequence into much shorter (downsampled) sequences of higher-level features. This sequence of extracted features then becomes the input to the RNN part of the network.</p>
+
+  <p class="notetitle" id="ch06fig30">Figure 6.30. <a id="ch06fig30__title"></a>Combining a 1D convnet and an RNN for processing long sequences</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig30.jpg"/></p>
+
+  <p class="noind">This technique isn’t seen often in research papers and practical applications, possibly because it isn’t well known. It’s effective and ought to be more common. Let’s try it on the temperature-forecasting dataset. Because this strategy allows you to manipulate much longer sequences, you can either look at data from longer ago (by increasing the <kbd class="calibre24">lookback</kbd> parameter of the data generator) or look at high-resolution timeseries (by decreasing the <kbd class="calibre24">step</kbd> parameter of the generator). Here, somewhat arbitrarily, you’ll use a <kbd class="calibre24">step</kbd> that’s half as large, resulting in a timeseries twice as long, where the <a id="iddle1595"></a>temperature data is sampled at a rate of 1 point per 30 minutes. The example reuses the <kbd class="calibre24">generator</kbd> function defined earlier.</p>
+
+  <p class="notetitle" id="ch06ex48">Listing 6.48. <a id="ch06ex48__title"></a>Preparing higher-resolution data generators for the Jena dataset</p>
+  <pre class="calibre4" id="PLd0e22158">step = 3                                      <span class="cambriamathin">❶</span>
+lookback = 720                                <span class="cambriamathin">❷</span>
+delay = 144                                   <span class="cambriamathin">❷</span>
+
+train_gen = generator(float_data,
+                      lookback=lookback,
+                      delay=delay,
+                      min_index=0,
+                      max_index=200000,
+                      shuffle=True,
+                      step=step)
+val_gen = generator(float_data,
+                    lookback=lookback,
+                    delay=delay,
+                    min_index=200001,
+                    max_index=300000,
+                    step=step)
+test_gen = generator(float_data,
+                     lookback=lookback,
+                     delay=delay,
+                     min_index=300001,
+                     max_index=None,
+                     step=step)
+val_steps = (300000 - 200001 - lookback) // 128
+test_steps = (len(float_data) - 300001 - lookback) // 128</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Previously set to 6 (1 point per hour); now 3 (1 point per 30 min)</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Unchanged</p>
+  </div>
+
+  <p class="noind">This is the model, starting with two <kbd class="calibre24">Conv1D</kbd> layers and following up with a <kbd class="calibre24">GRU</kbd> layer. <a href="#ch06fig31">Figure 6.31</a> shows the results.</p>
+
+  <p class="notetitle" id="ch06fig31">Figure 6.31. <a id="ch06fig31__title"></a>Training and validation loss on the Jena temperature-forecasting task with a 1D convnet followed by a <kbd class="calibre24">gru</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/06fig31.jpg"/></p>
+
+  <p class="notetitle" id="ch06ex49">Listing 6.49. <a id="ch06ex49__title"></a>Model combining a 1D convolutional base and a <kbd class="calibre24">GRU</kbd> layer</p>
+  <pre class="calibre4" id="PLd0e22230">from keras.models import Sequential
+from keras import layers
+from keras.optimizers import RMSprop
+
+model = Sequential()
+model.add(layers.Conv1D(32, 5, activation='relu',
+                        input_shape=(None, float_data.shape[-1])))
+model.add(layers.MaxPooling1D(3))
+model.add(layers.Conv1D(32, 5, activation='relu'))
+model.add(layers.GRU(32, dropout=0.1, recurrent_dropout=0.5))
+model.add(layers.Dense(1))
+
+model.summary()
+
+model.compile(optimizer=RMSprop(), loss='mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch=500,
+                              epochs=20,
+                              validation_data=val_gen,
+                              validation_steps=val_steps)</pre>
+
+  <p class="noind">Judging from the validation loss, this setup isn’t as good as the regularized <kbd class="calibre24">GRU</kbd> alone, but it’s significantly faster. It looks at twice as much data, which in this case doesn’t appear to be hugely helpful but may be important for other datasets.</p>
+
+  <h3 class="head1" id="ch06lev2sec23">6.4.5. <a id="ch06lev2sec23__title"></a>Wrapping up</h3>
+
+  <p class="noind">Here’s what you should take away from this section:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">In the same way that 2D convnets perform well for processing visual patterns in 2D space, 1D convnets perform well for processing temporal patterns. They offer a faster alternative to RNNs on some problems, in particular natural--language processing tasks.</li>
+
+    <li class="calibre17">Typically, 1D convnets are structured much like their 2D equivalents from the world of computer vision: they consist of stacks of <kbd class="calibre24">Conv1D</kbd> layers and <kbd class="calibre24">Max-Pooling1D</kbd> layers, ending in a global pooling operation or flattening operation.</li>
+
+    <li class="calibre17">Because RNNs are extremely expensive for processing very long sequences, but 1D convnets are cheap, it can be a good idea to use a 1D convnet as a preprocessing step before an RNN, shortening the sequence and extracting useful representations for the RNN to process.</li>
+  </ul>
+
+  <p class="noind"></p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch06sb03">Chapter summary</b>
+
+    <ul class="calibre16">
+      <li class="calibre17">
+        <a id="iddle1943"></a>In this chapter, you learned the following techniques, which are widely applicable to any dataset of sequence data, from text to timeseries:
+
+        <ul class="calibre28">
+          <li class="calibre29">How to tokenize text</li>
+
+          <li class="calibre29">What word embeddings are, and how to use them</li>
+
+          <li class="calibre29">What recurrent networks are, and how to use them</li>
+
+          <li class="calibre29">How to stack RNN layers and use bidirectional RNNs to build more-powerful sequence-processing models</li>
+
+          <li class="calibre29">How to use 1D convnets for sequence processing</li>
+
+          <li class="calibre29">How to combine 1D convnets and RNNs to process long sequences</li>
+        </ul>
+      </li>
+
+      <li class="calibre17">You can use RNNs for timeseries regression (“predicting the future”), timeseries classification, anomaly detection in timeseries, and sequence labeling (such as identifying names or dates in sentences).</li>
+
+      <li class="calibre17">Similarly, you can use 1D convnets for machine translation (sequence-to-sequence convolutional models, like SliceNet<sup class="calibre19">[<a href="#ch06tn01" class="calibre13">a</a>]</sup>), document classification, and spelling correction.
+
+        <blockquote class="smaller1">
+          <p class="calibre20"><sup class="calibre33"><a id="ch06tn01" class="calibre13">a</a></sup></p>
+
+          <div class="calibre21">
+            See <a href="https://arxiv.org/abs/1706.03059">https://arxiv.org/abs/1706.03059</a>.
+          </div>
+        </blockquote>
+      </li>
+
+      <li class="calibre17">If <i class="calibre5">global order matters</i> in your sequence data, then it’s preferable to use a recurrent network to process it. This is typically the case for timeseries, where the recent past is likely to be more informative than the distant past.</li>
+
+      <li class="calibre17">If <i class="calibre5">global ordering isn’t fundamentally meaningful</i>, then 1D convnets will turn out to work at least as well and are cheaper. This is often the case for text data, where a keyword found at the beginning of a sentence is just as meaningful as a keyword found at the end.</li>
+    </ul>
+  </div>
+  <hr class="calibre25"/>
+
+  <div class="calibre14" id="calibre_pb_26"></div>
+</body>
+</html>

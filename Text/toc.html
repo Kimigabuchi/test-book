@@ -1,0 +1,646 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Deep Learning with Python</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../Styles/stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../Styles/page_styles.css" rel="stylesheet" type="text/css"/>
+</head>
+  <body class="calibre">
+  <h1 class="part" id="toc">Table of Contents</h1>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/Copyright.html#copyrightp1g" class="calibre13">Copyright</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/btoc.html#btoc" class="calibre13">Brief Table of Contents</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="#toc" class="calibre13">Table of Contents</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/Preface.html#pref01" class="calibre13">Preface</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/Acknowledgments.html#pref02" class="calibre13">Acknowledgments</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/aBook_split_000.html#pref03" class="calibre13">About this Book</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/aAuthor.html#pref04" class="calibre13">About the Author</a><br class="calibre14"/></p>
+
+    <p class="ind"><a href="../Text/aCover.html#pref05" class="calibre13">About the Cover</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/p1.html#part01" class="calibre13">1. Fundamentals of deep learning</a><br class="calibre14"/></p>
+
+    <blockquote class="toc">
+      <p class="ind"><a href="../Text/01.html#ch01" class="calibre13">Chapter 1. What is deep learning?</a><br class="calibre14"/></p>
+
+      <blockquote class="toc">
+        <p class="ind"><a href="../Text/01.html#ch01lev1sec1" class="calibre13">1.1. Artificial intelligence, machine learning, and deep learning</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec1" class="calibre13">1.1.1. Artificial intelligence</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec2" class="calibre13">1.1.2. Machine learning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec3" class="calibre13">1.1.3. Learning representations from data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec4" class="calibre13">1.1.4. The “deep” in deep learning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec5" class="calibre13">1.1.5. Understanding how deep learning works, in three figures</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec6" class="calibre13">1.1.6. What deep learning has achieved so far</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec7" class="calibre13">1.1.7. Don’t believe the short-term hype</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec8" class="calibre13">1.1.8. The promise of AI</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/01.html#ch01lev1sec2" class="calibre13">1.2. Before deep learning: a brief history of machine learning</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec9" class="calibre13">1.2.1. Probabilistic modeling</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec10" class="calibre13">1.2.2. Early neural networks</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec11" class="calibre13">1.2.3. Kernel methods</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec12" class="calibre13">1.2.4. Decision trees, random forests, and gradient boosting machines</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec13" class="calibre13">1.2.5. Back to neural networks</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec14" class="calibre13">1.2.6. What makes deep learning different</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec15" class="calibre13">1.2.7. The modern machine-learning landscape</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/01.html#ch01lev1sec3" class="calibre13">1.3. Why deep learning? Why now?</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec16" class="calibre13">1.3.1. Hardware</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec17" class="calibre13">1.3.2. Data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec18" class="calibre13">1.3.3. Algorithms</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec19" class="calibre13">1.3.4. A new wave of investment</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec20" class="calibre13">1.3.5. The democratization of deep learning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/01.html#ch01lev2sec21" class="calibre13">1.3.6. Will it last?</a><br class="calibre14"/></p>
+        </blockquote>
+      </blockquote>
+
+      <p class="ind"><a href="../Text/02.html#ch02" class="calibre13">Chapter 2. Before we begin: the mathematical building blocks of neural networks</a><br class="calibre14"/></p>
+
+      <blockquote class="toc">
+        <p class="ind"><a href="../Text/02.html#ch02lev1sec1" class="calibre13">2.1. A first look at a neural network</a><br class="calibre14"/></p>
+
+        <p class="ind"><a href="../Text/02.html#ch02lev1sec2" class="calibre13">2.2. Data representations for neural networks</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec1" class="calibre13">2.2.1. Scalars (0D tensors)</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec2" class="calibre13">2.2.2. Vectors (1D tensors)</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec3" class="calibre13">2.2.3. Matrices (2D tensors)</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec4" class="calibre13">2.2.4. 3D tensors and higher-dimensional tensors</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec5" class="calibre13">2.2.5. Key attributes</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec6" class="calibre13">2.2.6. Manipulating tensors in Numpy</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec7" class="calibre13">2.2.7. The notion of data batches</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec8" class="calibre13">2.2.8. Real-world examples of data tensors</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec9" class="calibre13">2.2.9. Vector data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec10" class="calibre13">2.2.10. Timeseries data or sequence data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec11" class="calibre13">2.2.11. Image data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec12" class="calibre13">2.2.12. Video data</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/02.html#ch02lev1sec3" class="calibre13">2.3. The gears of neural networks: tensor operations</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec13" class="calibre13">2.3.1. Element-wise operations</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec14" class="calibre13">2.3.2. Broadcasting</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec15" class="calibre13">2.3.3. Tensor dot</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec16" class="calibre13">2.3.4. Tensor reshaping</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec17" class="calibre13">2.3.5. Geometric interpretation of tensor operations</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec18" class="calibre13">2.3.6. A geometric interpretation of deep learning</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/02.html#ch02lev1sec4" class="calibre13">2.4. The engine of neural networks: gradient-based optimization</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec19" class="calibre13">2.4.1. What’s a derivative?</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec20" class="calibre13">2.4.2. Derivative of a tensor operation: the gradient</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec21" class="calibre13">2.4.3. Stochastic gradient descent</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/02.html#ch02lev2sec22" class="calibre13">2.4.4. Chaining derivatives: the Backpropagation algorithm</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/02.html#ch02lev1sec5" class="calibre13">2.5. Looking back at our first example</a><br class="calibre14"/></p>
+      </blockquote>
+
+      <p class="ind"><a href="../Text/03.html#ch03" class="calibre13">Chapter 3. Getting started with neural networks</a><br class="calibre14"/></p>
+
+      <blockquote class="toc">
+        <p class="ind"><a href="../Text/03.html#ch03lev1sec1" class="calibre13">3.1. Anatomy of a neural network</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec1" class="calibre13">3.1.1. Layers: the building blocks of deep learning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec2" class="calibre13">3.1.2. Models: networks of layers</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec3" class="calibre13">3.1.3. Loss functions and optimizers: keys to configuring the learning process</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/03.html#ch03lev1sec2" class="calibre13">3.2. Introduction to Keras</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec4" class="calibre13">3.2.1. Keras, TensorFlow, Theano, and CNTK</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec5" class="calibre13">3.2.2. Developing with Keras: a quick overview</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/03.html#ch03lev1sec3" class="calibre13">3.3. Setting up a deep-learning workstation</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec6" class="calibre13">3.3.1. Jupyter notebooks: the preferred way to run deep-learning experiments</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec7" class="calibre13">3.3.2. Getting Keras running: two options</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec8" class="calibre13">3.3.3. Running deep-learning jobs in the cloud: pros and cons</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec9" class="calibre13">3.3.4. What is the best GPU for deep learning?</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/03.html#ch03lev1sec4" class="calibre13">3.4. Classifying movie reviews: a binary classification example</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec10" class="calibre13">3.4.1. The IMDB dataset</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec11" class="calibre13">3.4.2. Preparing the data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec12" class="calibre13">3.4.3. Building your network</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec13" class="calibre13">3.4.4. Validating your approach</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec14" class="calibre13">3.4.5. Using a trained network to generate predictions on new data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec15" class="calibre13">3.4.6. Further experiments</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec16" class="calibre13">3.4.7. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/03.html#ch03lev1sec5" class="calibre13">3.5. Classifying newswires: a multiclass classification example</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec17" class="calibre13">3.5.1. The Reuters dataset</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec18" class="calibre13">3.5.2. Preparing the data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec19" class="calibre13">3.5.3. Building your network</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec20" class="calibre13">3.5.4. Validating your approach</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec21" class="calibre13">3.5.5. Generating predictions on new data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec22" class="calibre13">3.5.6. A different way to handle the labels and the loss</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec23" class="calibre13">3.5.7. The importance of having sufficiently large intermediate layers</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec24" class="calibre13">3.5.8. Further experiments</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec25" class="calibre13">3.5.9. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/03.html#ch03lev1sec6" class="calibre13">3.6. Predicting house prices: a regression example</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec26" class="calibre13">3.6.1. The Boston Housing Price dataset</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec27" class="calibre13">3.6.2. Preparing the data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec28" class="calibre13">3.6.3. Building your network</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec29" class="calibre13">3.6.4. Validating your approach using K-fold validation</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/03.html#ch03lev2sec30" class="calibre13">3.6.5. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+      </blockquote>
+
+      <p class="ind"><a href="../Text/04.html#ch04" class="calibre13">Chapter 4. Fundamentals of machine learning</a><br class="calibre14"/></p>
+
+      <blockquote class="toc">
+        <p class="ind"><a href="../Text/04.html#ch04lev1sec1" class="calibre13">4.1. Four branches of machine learning</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec1" class="calibre13">4.1.1. Supervised learning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec2" class="calibre13">4.1.2. Unsupervised learning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec3" class="calibre13">4.1.3. Self-supervised learning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec4" class="calibre13">4.1.4. Reinforcement learning</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/04.html#ch04lev1sec2" class="calibre13">4.2. Evaluating machine-learning models</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec5" class="calibre13">4.2.1. Training, validation, and test sets</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec6" class="calibre13">4.2.2. Things to keep in mind</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/04.html#ch04lev1sec3" class="calibre13">4.3. Data preprocessing, feature engineering, and feature learning</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec7" class="calibre13">4.3.1. Data preprocessing for neural networks</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec8" class="calibre13">4.3.2. Feature engineering</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/04.html#ch04lev1sec4" class="calibre13">4.4. Overfitting and underfitting</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec9" class="calibre13">4.4.1. Reducing the network’s size</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec10" class="calibre13">4.4.2. Adding weight regularization</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec11" class="calibre13">4.4.3. Adding dropout</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/04.html#ch04lev1sec5" class="calibre13">4.5. The universal workflow of machine learning</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec12" class="calibre13">4.5.1. Defining the problem and assembling a dataset</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec13" class="calibre13">4.5.2. Choosing a measure of success</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec14" class="calibre13">4.5.3. Deciding on an evaluation protocol</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec15" class="calibre13">4.5.4. Preparing your data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec16" class="calibre13">4.5.5. Developing a model that does better than a baseline</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec17" class="calibre13">4.5.6. Scaling up: developing a model that overfits</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/04.html#ch04lev2sec18" class="calibre13">4.5.7. Regularizing your model and tuning your hyperparameters</a><br class="calibre14"/></p>
+        </blockquote>
+      </blockquote>
+    </blockquote>
+
+    <p class="ind"><a href="../Text/p2.html#part02" class="calibre13">2. Deep learning in practice</a><br class="calibre14"/></p>
+
+    <blockquote class="toc">
+      <p class="ind"><a href="../Text/05.html#ch05" class="calibre13">Chapter 5. Deep learning for computer vision</a><br class="calibre14"/></p>
+
+      <blockquote class="toc">
+        <p class="ind"><a href="../Text/05.html#ch05lev1sec1" class="calibre13">5.1. Introduction to convnets</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec1" class="calibre13">5.1.1. The convolution operation</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec2" class="calibre13">5.1.2. The max-pooling operation</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/05.html#ch05lev1sec2" class="calibre13">5.2. Training a convnet from scratch on a small dataset</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec3" class="calibre13">5.2.1. The relevance of deep learning for small-data problems</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec4" class="calibre13">5.2.2. Downloading the data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec5" class="calibre13">5.2.3. Building your network</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec6" class="calibre13">5.2.4. Data preprocessing</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec7" class="calibre13">5.2.5. Using data augmentation</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/05.html#ch05lev1sec3" class="calibre13">5.3. Using a pretrained convnet</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec8" class="calibre13">5.3.1. Feature extraction</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec9" class="calibre13">5.3.2. Fine-tuning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec10" class="calibre13">5.3.3. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/05.html#ch05lev1sec4" class="calibre13">5.4. Visualizing what convnets learn</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec11" class="calibre13">5.4.1. Visualizing intermediate activations</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec12" class="calibre13">5.4.2. Visualizing convnet filters</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/05.html#ch05lev2sec13" class="calibre13">5.4.3. Visualizing heatmaps of class activation</a><br class="calibre14"/></p>
+        </blockquote>
+      </blockquote>
+
+      <p class="ind"><a href="../Text/06.html#ch06" class="calibre13">Chapter 6. Deep learning for text and sequences</a><br class="calibre14"/></p>
+
+      <blockquote class="toc">
+        <p class="ind"><a href="../Text/06.html#ch06lev1sec1" class="calibre13">6.1. Working with text data</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec1" class="calibre13">6.1.1. One-hot encoding of words and characters</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec2" class="calibre13">6.1.2. Using word embeddings</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec3" class="calibre13">6.1.3. Putting it all together: from raw text to word embeddings</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec4" class="calibre13">6.1.4. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/06.html#ch06lev1sec2" class="calibre13">6.2. Understanding recurrent neural networks</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec5" class="calibre13">6.2.1. A recurrent layer in Keras</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec6" class="calibre13">6.2.2. Understanding the LSTM and GRU layers</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec7" class="calibre13">6.2.3. A concrete LSTM example in Keras</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec8" class="calibre13">6.2.4. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/06.html#ch06lev1sec3" class="calibre13">6.3. Advanced use of recurrent neural networks</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec9" class="calibre13">6.3.1. A temperature-forecasting problem</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec10" class="calibre13">6.3.2. Preparing the data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec11" class="calibre13">6.3.3. A common-sense, non-machine-learning baseline</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec12" class="calibre13">6.3.4. A basic machine-learning approach</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec13" class="calibre13">6.3.5. A first recurrent baseline</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec14" class="calibre13">6.3.6. Using recurrent dropout to fight overfitting</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec15" class="calibre13">6.3.7. Stacking recurrent layers</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec16" class="calibre13">6.3.8. Using bidirectional RNNs</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec17" class="calibre13">6.3.9. Going even further</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec18" class="calibre13">6.3.10. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/06.html#ch06lev1sec4" class="calibre13">6.4. Sequence processing with convnets</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec19" class="calibre13">6.4.1. Understanding 1D convolution for sequence data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec20" class="calibre13">6.4.2. 1D pooling for sequence data</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec21" class="calibre13">6.4.3. Implementing a 1D convnet</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec22" class="calibre13">6.4.4. Combining CNNs and RNNs to process long sequences</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/06.html#ch06lev2sec23" class="calibre13">6.4.5. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+      </blockquote>
+
+      <p class="ind"><a href="../Text/07.html#ch07" class="calibre13">Chapter 7. Advanced deep-learning best practices</a><br class="calibre14"/></p>
+
+      <blockquote class="toc">
+        <p class="ind"><a href="../Text/07.html#ch07lev1sec1" class="calibre13">7.1. Going beyond the Sequential model: the Keras functional API</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec1" class="calibre13">7.1.1. Introduction to the functional API</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec2" class="calibre13">7.1.2. Multi-input models</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec3" class="calibre13">7.1.3. Multi-output models</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec4" class="calibre13">7.1.4. Directed acyclic graphs of layers</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec5" class="calibre13">7.1.5. Layer weight sharing</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec6" class="calibre13">7.1.6. Models as layers</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec7" class="calibre13">7.1.7. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/07.html#ch07lev1sec2" class="calibre13">7.2. Inspecting and monitoring deep-learning models using Keras callbacks and TensorBoard</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec8" class="calibre13">7.2.1. Using callbacks to act on a model during training</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec9" class="calibre13">7.2.2. Introduction to TensorBoard: the TensorFlow visualization framework</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec10" class="calibre13">7.2.3. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/07.html#ch07lev1sec3" class="calibre13">7.3. Getting the most out of your models</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec11" class="calibre13">7.3.1. Advanced architecture patterns</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec12" class="calibre13">7.3.2. Hyperparameter optimization</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec13" class="calibre13">7.3.3. Model ensembling</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/07.html#ch07lev2sec14" class="calibre13">7.3.4. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+      </blockquote>
+
+      <p class="ind"><a href="../Text/08.html#ch08" class="calibre13">Chapter 8. Generative deep learning</a><br class="calibre14"/></p>
+
+      <blockquote class="toc">
+        <p class="ind"><a href="../Text/08.html#ch08lev1sec1" class="calibre13">8.1. Text generation with LSTM</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec1" class="calibre13">8.1.1. A brief history of generative recurrent networks</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec2" class="calibre13">8.1.2. How do you generate sequence data?</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec3" class="calibre13">8.1.3. The importance of the sampling strategy</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec4" class="calibre13">8.1.4. Implementing character-level LSTM text generation</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec5" class="calibre13">8.1.5. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/08.html#ch08lev1sec2" class="calibre13">8.2. DeepDream</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec6" class="calibre13">8.2.1. Implementing DeepDream in Keras</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec7" class="calibre13">8.2.2. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/08.html#ch08lev1sec3" class="calibre13">8.3. Neural style transfer</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec8" class="calibre13">8.3.1. The content loss</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec9" class="calibre13">8.3.2. The style loss</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec10" class="calibre13">8.3.3. Neural style transfer in Keras</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec11" class="calibre13">8.3.4. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/08.html#ch08lev1sec4" class="calibre13">8.4. Generating images with variational autoencoders</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec12" class="calibre13">8.4.1. Sampling from latent spaces of images</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec13" class="calibre13">8.4.2. Concept vectors for image editing</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec14" class="calibre13">8.4.3. Variational autoencoders</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec15" class="calibre13">8.4.4. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/08.html#ch08lev1sec5" class="calibre13">8.5. Introduction to generative adversarial networks</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec16" class="calibre13">8.5.1. A schematic GAN implementation</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec17" class="calibre13">8.5.2. A bag of tricks</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec18" class="calibre13">8.5.3. The generator</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec19" class="calibre13">8.5.4. The discriminator</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec20" class="calibre13">8.5.5. The adversarial network</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec21" class="calibre13">8.5.6. How to train your DCGAN</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/08.html#ch08lev2sec22" class="calibre13">8.5.7. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+      </blockquote>
+
+      <p class="ind"><a href="../Text/09.html#ch09" class="calibre13">Chapter 9. Conclusions</a><br class="calibre14"/></p>
+
+      <blockquote class="toc">
+        <p class="ind"><a href="../Text/09.html#ch09lev1sec1" class="calibre13">9.1. Key concepts in review</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec1" class="calibre13">9.1.1. Various approaches to AI</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec2" class="calibre13">9.1.2. What makes deep learning special within the field of machine learning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec3" class="calibre13">9.1.3. How to think about deep learning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec4" class="calibre13">9.1.4. Key enabling technologies</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec5" class="calibre13">9.1.5. The universal machine-learning workflow</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec6" class="calibre13">9.1.6. Key network architectures</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec7" class="calibre13">9.1.7. The space of possibilities</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/09.html#ch09lev1sec2" class="calibre13">9.2. The limitations of deep learning</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec8" class="calibre13">9.2.1. The risk of anthropomorphizing machine-learning models</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec9" class="calibre13">9.2.2. Local generalization vs. extreme generalization</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec10" class="calibre13">9.2.3. Wrapping up</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/09.html#ch09lev1sec3" class="calibre13">9.3. The future of deep learning</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec11" class="calibre13">9.3.1. Models as programs</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec12" class="calibre13">9.3.2. Beyond backpropagation and differentiable layers</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec13" class="calibre13">9.3.3. Automated machine learning</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec14" class="calibre13">9.3.4. Lifelong learning and modular subroutine reuse</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec15" class="calibre13">9.3.5. The long-term vision</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/09.html#ch09lev1sec4" class="calibre13">9.4. Staying up to date in a fast-moving field</a><br class="calibre14"/></p>
+
+        <blockquote class="toc">
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec16" class="calibre13">9.4.1. Practice on real-world problems using Kaggle</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec17" class="calibre13">9.4.2. Read about the latest developments on arXiv</a><br class="calibre14"/></p>
+
+          <p class="ind"><a href="../Text/09.html#ch09lev2sec18" class="calibre13">9.4.3. Explore the Keras ecosystem</a><br class="calibre14"/></p>
+        </blockquote>
+
+        <p class="ind"><a href="../Text/09.html#ch09lev1sec5" class="calibre13">9.5. Final words</a><br class="calibre14"/></p>
+      </blockquote>
+    </blockquote>
+  </blockquote>
+
+  <blockquote class="toc">
+    <p class="ind"><a href="../Text/A.html#app01" class="calibre13">Appendix A. Installing Keras and its dependencies on Ubuntu</a><br class="calibre14"/></p>
+
+    <blockquote class="toc">
+      <p class="ind"><a href="../Text/A.html#app01lev1sec1" class="calibre13">A.1. Installing the Python scientific suite</a><br class="calibre14"/></p>
+
+      <p class="ind"><a href="../Text/A.html#app01lev1sec2" class="calibre13">A.2. Setting up GPU support</a><br class="calibre14"/></p>
+
+      <p class="ind"><a href="../Text/A.html#app01lev1sec3" class="calibre13">A.3. Installing Theano (optional)</a><br class="calibre14"/></p>
+
+      <p class="ind"><a href="../Text/A.html#app01lev1sec4" class="calibre13">A.4. Installing Keras</a><br class="calibre14"/></p>
+    </blockquote>
+
+    <p class="ind"><a href="../Text/B.html#app02" class="calibre13">Appendix B. Running Jupyter notebooks on an EC2 GPU instance</a><br class="calibre14"/></p>
+
+    <blockquote class="toc">
+      <p class="ind"><a href="../Text/B.html#app02lev1sec1" class="calibre13">B.1. What are Jupyter notebooks? Why run Jupyter notebooks on AWS GPUs?</a><br class="calibre14"/></p>
+
+      <p class="ind"><a href="../Text/B.html#app02lev1sec2" class="calibre13">B.2. Why would you not want to use Jupyter on AWS for deep learning?</a><br class="calibre14"/></p>
+
+      <p class="ind"><a href="../Text/B.html#app02lev1sec3" class="calibre13">B.3. Setting up an AWS GPU instance</a><br class="calibre14"/></p>
+
+      <blockquote class="toc">
+        <p class="ind"><a href="../Text/B.html#app02lev2sec1" class="calibre13">B.3.1. Configuring Jupyter</a><br class="calibre14"/></p>
+      </blockquote>
+
+      <p class="ind"><a href="../Text/B.html#app02lev1sec4" class="calibre13">B.4. Installing Keras</a><br class="calibre14"/></p>
+
+      <p class="ind"><a href="../Text/B.html#app02lev1sec5" class="calibre13">B.5. Setting up local port forwarding</a><br class="calibre14"/></p>
+
+      <p class="ind"><a href="../Text/B.html#app02lev1sec6" class="calibre13">B.6. Using Jupyter from your local browser</a><br class="calibre14"/></p>
+    </blockquote>
+  </blockquote>
+
+  <blockquote class="calibre15">
+    <p class="ind"><a href="../Text/Index.html#MainIndex" class="calibre13">Index</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <blockquote class="calibre15">
+    <p class="ind"><a href="../Text/Figures.html#lof" class="calibre13">List of Figures</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <blockquote class="calibre15">
+    <p class="ind"><a href="../Text/Tables.html#lot" class="calibre13">List of Tables</a><br class="calibre14"/></p>
+  </blockquote>
+
+  <blockquote class="calibre15">
+    <p class="ind"><a href="../Text/Listings.html#loe" class="calibre13">List of Listings</a><br class="calibre14"/></p>
+  </blockquote>
+</body>
+</html>

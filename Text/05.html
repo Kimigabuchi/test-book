@@ -1,0 +1,1940 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Deep Learning with Python</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../Styles/stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../Styles/page_styles.css" rel="stylesheet" type="text/css"/>
+</head>
+  <body class="calibre">
+  <h1 class="part" id="ch05">Chapter 5. <a class="calibre3" id="ch05__title"></a>Deep learning for computer vision</h1>
+
+  <p class="noind1">This chapter covers</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Understanding convolutional neural networks (convnets)</li>
+
+    <li class="calibre17">Using data augmentation to mitigate overfitting</li>
+
+    <li class="calibre17">Using a pretrained convnet to do feature extraction</li>
+
+    <li class="calibre17">Fine-tuning a pretrained convnet</li>
+
+    <li class="calibre17">Visualizing what convnets learn and how they make classification decisions</li>
+  </ul>
+
+  <p class="noind">This chapter introduces convolutional neural networks, also known as <i class="calibre5">convnets</i>, a type of deep-learning model almost universally used in computer vision applications. You’ll learn to apply convnets to image-classification problems—in particular those involving small training datasets, which are the most common use case if you aren’t a large tech company.</p>
+
+  <h2 class="head" id="ch05lev1sec1"><a class="calibre3" id="ch05lev1sec1__title"></a>5.1. Introduction to convnets</h2>
+
+  <p class="noind"><a id="iddle1107"></a><a id="iddle1113"></a><a id="iddle1596"></a>We’re about to dive into the theory of what convnets are and why they have been so successful at computer vision tasks. But first, let’s take a practical look at a simple convnet example. It uses a convnet to classify MNIST digits, a task we performed in <a href="../Text/02.html#ch02">chapter 2</a> using a densely connected network (our test accuracy then was 97.8%). Even though the convnet will be basic, its accuracy will blow out of the water that of the densely connected model from <a href="../Text/02.html#ch02">chapter 2</a>.</p>
+
+  <p class="noind">The following lines of code show you what a basic convnet looks like. It’s a stack of <kbd class="calibre24">Conv2D</kbd> and <kbd class="calibre24">MaxPooling2D</kbd> layers. You’ll see in a minute exactly what they do.</p>
+
+  <p class="notetitle" id="ch05ex01">Listing 5.1. <a id="ch05ex01__title"></a>Instantiating a small convnet</p>
+  <pre class="calibre4" id="PLd0e12828">from keras import layers
+from keras import models
+
+model = models.Sequential()
+model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))</pre>
+
+  <p class="noind">Importantly, a convnet takes as input tensors of shape <kbd class="calibre24">(image_height, image_width, image_channels)</kbd> (not including the batch dimension). In this case, we’ll configure the convnet to process inputs of size <kbd class="calibre24">(28, 28, 1)</kbd>, which is the format of MNIST images. We’ll do this by passing the argument <kbd class="calibre24">input_shape=(28, 28, 1)</kbd> to the first layer.</p>
+
+  <p class="noind">Let’s display the architecture of the convnet so far:</p>
+  <pre class="calibre4" id="PLd0e12849">&gt;&gt;&gt; model.summary()
+________________________________________________________________
+Layer (type)                     Output Shape          Param #
+================================================================
+conv2d_1 (Conv2D)                (None, 26, 26, 32)    320
+________________________________________________________________
+maxpooling2d_1 (MaxPooling2D)    (None, 13, 13, 32)    0
+________________________________________________________________
+conv2d_2 (Conv2D)                (None, 11, 11, 64)    18496
+________________________________________________________________
+maxpooling2d_2 (MaxPooling2D)    (None, 5, 5, 64)      0
+________________________________________________________________
+conv2d_3 (Conv2D)                (None, 3, 3, 64)      36928
+================================================================
+Total params: 55,744
+Trainable params: 55,744
+Non-trainable params: 0</pre>
+
+  <p class="noind">You can see that the output of every <kbd class="calibre24">Conv2D</kbd> and <kbd class="calibre24">MaxPooling2D</kbd> layer is a 3D tensor of shape <kbd class="calibre24">(height, width, channels)</kbd>. The width and height dimensions tend to shrink as you go deeper in the network. The number of channels is controlled by the first argument passed to the <kbd class="calibre24">Conv2D</kbd> layers (32 or 64).</p>
+
+  <p class="noind">The next step is to feed the last output tensor (of shape <kbd class="calibre24">(3, 3, 64)</kbd>) into a densely connected classifier network like those you’re already familiar with: a stack of <kbd class="calibre24">Dense</kbd> layers. These classifiers process vectors, which are 1D, whereas the current output is a 3D tensor. First we have to flatten the 3D outputs to 1D, and then add a few <kbd class="calibre24">Dense</kbd> layers on top.</p>
+
+  <p class="notetitle" id="ch05ex02">Listing 5.2. <a id="ch05ex02__title"></a>Adding a classifier on top of the convnet</p>
+  <pre class="calibre4" id="PLd0e12888">model.add(layers.Flatten())
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dense(10, activation='softmax'))</pre>
+
+  <p class="noind">We’ll do 10-way classification, using a final layer with 10 outputs and a softmax activation. Here’s what the network looks like now:</p>
+  <pre class="calibre4" id="PLd0e12897">&gt;&gt;&gt; model.summary()
+Layer (type)                     Output Shape          Param #
+================================================================
+conv2d_1 (Conv2D)                (None, 26, 26, 32)    320
+________________________________________________________________
+maxpooling2d_1 (MaxPooling2D)    (None, 13, 13, 32)    0
+________________________________________________________________
+conv2d_2 (Conv2D)                (None, 11, 11, 64)    18496
+________________________________________________________________
+maxpooling2d_2 (MaxPooling2D)    (None, 5, 5, 64)      0
+________________________________________________________________
+conv2d_3 (Conv2D)                (None, 3, 3, 64)      36928
+________________________________________________________________
+flatten_1 (Flatten)              (None, 576)           0
+________________________________________________________________
+dense_1 (Dense)                  (None, 64)            36928
+________________________________________________________________
+dense_2 (Dense)                  (None, 10)            650
+================================================================
+Total params: 93,322
+Trainable params: 93,322
+Non-trainable params: 0</pre>
+
+  <p class="noind">As you can see, the <kbd class="calibre24">(3, 3, 64)</kbd> outputs are flattened into vectors of shape <kbd class="calibre24">(576,)</kbd> before going through two <kbd class="calibre24">Dense</kbd> layers.</p>
+
+  <p class="noind">Now, let’s train the convnet on the MNIST digits. We’ll reuse a lot of the code from the MNIST example in <a href="../Text/02.html#ch02">chapter 2</a>.</p>
+
+  <p class="notetitle" id="ch05ex03">Listing 5.3. <a id="ch05ex03__title"></a>Training the convnet on MNIST images</p>
+  <pre class="calibre4" id="PLd0e12924">from keras.datasets import mnist
+from keras.utils import to_categorical
+
+(train_images, train_labels), (test_images, test_labels) = mnist.load_data()
+train_images = train_images.reshape((60000, 28, 28, 1))
+train_images = train_images.astype('float32') / 255
+
+test_images = test_images.reshape((10000, 28, 28, 1))
+test_images = test_images.astype('float32') / 255
+
+train_labels = to_categorical(train_labels)
+test_labels = to_categorical(test_labels)
+
+model.compile(optimizer='rmsprop',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+model.fit(train_images, train_labels, epochs=5, batch_size=64)</pre>
+
+  <p class="noind"><a id="iddle1108"></a><a id="iddle1114"></a><a id="iddle1131"></a><a id="iddle1229"></a><a id="iddle1597"></a>Let’s evaluate the model on the test data:</p>
+  <pre class="calibre4" id="PLd0e12966">&gt;&gt;&gt; test_loss, test_acc = model.evaluate(test_images, test_labels)
+&gt;&gt;&gt; test_acc
+0.99080000000000001</pre>
+
+  <p class="noind">Whereas the densely connected network from <a href="../Text/02.html#ch02">chapter 2</a> had a test accuracy of 97.8%, the basic convnet has a test accuracy of 99.3%: we decreased the error rate by 68% (relative). Not bad!</p>
+
+  <p class="noind">But why does this simple convnet work so well, compared to a densely connected model? To answer this, let’s dive into what the <kbd class="calibre24">Conv2D</kbd> and <kbd class="calibre24">MaxPooling2D</kbd> layers do.</p>
+
+  <h3 class="head1" id="ch05lev2sec1">5.1.1. <a id="ch05lev2sec1__title"></a>The convolution operation</h3>
+
+  <p class="noind">The fundamental difference between a densely connected layer and a convolution layer is this: <kbd class="calibre24">Dense</kbd> layers learn global patterns in their input feature space (for example, for a MNIST digit, patterns involving all pixels), whereas convolution layers learn local patterns (see <a href="#ch05fig01">figure 5.1</a>): in the case of images, patterns found in small 2D windows of the inputs. In the previous example, these windows were all 3 × 3.</p>
+
+  <p class="notetitle" id="ch05fig01">Figure 5.1. <a id="ch05fig01__title"></a>Images can be broken into local patterns such as edges, textures, and so on.</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig01.jpg"/></p>
+
+  <p class="noind"><a id="iddle1086"></a><a id="iddle1276"></a><a id="iddle1917"></a><a id="iddle2010"></a>This key characteristic gives convnets two interesting properties:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><b class="calibre22">The patterns they learn are translation invariant.</b> After learning a certain pattern in the lower-right corner of a picture, a convnet can recognize it anywhere: for example, in the upper-left corner. A densely connected network would have to learn the pattern anew if it appeared at a new location. This makes convnets data efficient when processing images (because <i class="calibre5">the visual world is fundamentally translation invariant</i>): they need fewer training samples to learn representations that have generalization power.</li>
+
+    <li class="calibre17"><b class="calibre22">They can learn spatial hierarchies of patterns (see <a href="#ch05fig02">figure 5.2</a>).</b> A first convolution layer will learn small local patterns such as edges, a second convolution layer will learn larger patterns made of the features of the first layers, and so on. This allows convnets to efficiently learn increasingly complex and abstract visual concepts (because <i class="calibre5">the visual world is fundamentally spatially hierarchical</i>).</li>
+  </ul>
+
+  <p class="notetitle" id="ch05fig02">Figure 5.2. <a id="ch05fig02__title"></a>The visual world forms a spatial hierarchy of visual modules: hyperlocal edges combine into local objects such as eyes or ears, which combine into high-level concepts such as “cat.”</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig02.jpg"/></p>
+
+  <p class="noind">Convolutions operate over 3D tensors, called <i class="calibre5">feature maps</i>, with two spatial axes (<i class="calibre5">height</i> and <i class="calibre5">width</i>) as well as a <i class="calibre5">depth</i> axis (also called the <i class="calibre5">channels</i> axis). For an RGB image, the dimension of the depth axis is 3, because the image has three color channels: red, green, and blue. For a black-and-white picture, like the MNIST digits, the depth is 1 (levels of gray). The convolution operation extracts patches from its input feature map and applies the same transformation to all of these patches, producing an <i class="calibre5">output feature map</i>. This output feature map is still a 3D tensor: it has a width and a height. Its depth can be arbitrary, because the output depth is a parameter of the layer, and the <a id="iddle1109"></a><a id="iddle1288"></a><a id="iddle1845"></a><a id="iddle1907"></a>different channels in that depth axis no longer stand for specific colors as in RGB input; rather, they stand for <i class="calibre5">filters</i>. Filters encode specific aspects of the input data: at a high level, a single filter could encode the concept “presence of a face in the input,” for instance.</p>
+
+  <p class="noind">In the MNIST example, the first convolution layer takes a feature map of size <kbd class="calibre24">(28, 28, 1)</kbd> and outputs a feature map of size <kbd class="calibre24">(26, 26, 32)</kbd>: it computes 32 filters over its input. Each of these 32 output channels contains a 26 × 26 grid of values, which is a <i class="calibre5">response map</i> of the filter over the input, indicating the response of that filter pattern at different locations in the input (see <a href="#ch05fig03">figure 5.3</a>). That is what the term <i class="calibre5">feature map</i> means: every dimension in the depth axis is a feature (or filter), and the 2D tensor <kbd class="calibre24">output[:, :, n]</kbd> is the 2D spatial <i class="calibre5">map</i> of the response of this filter over the input.</p>
+
+  <p class="notetitle" id="ch05fig03">Figure 5.3. <a id="ch05fig03__title"></a>The concept of a <i class="calibre5">response map</i>: a 2D map of the presence of a pattern at different locations in an input</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig03.jpg"/></p>
+
+  <p class="noind">Convolutions are defined by two key parameters:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><b class="calibre22">Size of the patches extracted from the inputs—</b> These are typically 3 × 3 or 5 × 5. In the example, they were 3 × 3, which is a common choice.</li>
+
+    <li class="calibre17"><b class="calibre22">Depth of the output feature map—</b> The number of filters computed by the convolution. The example started with a depth of 32 and ended with a depth of 64.</li>
+  </ul>
+
+  <p class="noind">In Keras <kbd class="calibre24">Conv2D</kbd> layers, these parameters are the first arguments passed to the layer: <kbd class="calibre24">Conv2D(output_depth, (window_height, window_width))</kbd>.</p>
+
+  <p class="noind">A convolution works by <i class="calibre5">sliding</i> these windows of size 3 × 3 or 5 × 5 over the 3D input feature map, stopping at every possible location, and extracting the 3D patch of surrounding features (shape <kbd class="calibre24">(window_height, window_width, input_depth)</kbd>). Each such 3D patch is then transformed (via a tensor product with the same learned weight matrix, called the <i class="calibre5">convolution kernel</i>) into a 1D vector of shape <kbd class="calibre24">(output_depth,)</kbd>. All of these vectors are then spatially reassembled into a 3D output map of shape <kbd class="calibre24">(height, width, output_depth)</kbd>. Every spatial location in the output feature map corresponds to the same location in the input feature map (for example, the lower-right corner of the output contains information about the lower-right corner of the input). For instance, with 3 × 3 windows, the vector <kbd class="calibre24">output[i, j, :]</kbd> comes from the 3D patch <kbd class="calibre24">input[i-1:i+1, j-1:j+1, :]</kbd>. The full process is detailed in <a href="#ch05fig04">figure 5.4</a>.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05fig04">Figure 5.4. <a id="ch05fig04__title"></a>How convolution works</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig04.jpg"/></p>
+
+  <p class="noind"><a id="iddle1076"></a><a id="iddle1132"></a><a id="iddle1134"></a><a id="iddle1761"></a><a id="iddle1928"></a>Note that the output width and height may differ from the input width and height. They may differ for two reasons:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Border effects, which can be countered by padding the input feature map</li>
+
+    <li class="calibre17">The use of <i class="calibre5">strides</i>, which I’ll define in a second</li>
+  </ul>
+
+  <p class="noind">Let’s take a deeper look at these notions.</p>
+
+  <p class="notetitle" id="ch05lev3sec1"><a id="ch05lev3sec1__title"></a>Understanding border effects and padding</p>
+
+  <p class="noind">Consider a 5 × 5 feature map (25 tiles total). There are only 9 tiles around which you can center a 3 × 3 window, forming a 3 × 3 grid (see <a href="#ch05fig05">figure 5.5</a>). Hence, the output feature map will be 3 × 3. It shrinks a little: by exactly two tiles alongside each dimension, in this case. You can see this border effect in action in the earlier example: you start with 28 × 28 inputs, which become 26 × 26 after the first convolution layer.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05fig05">Figure 5.5. <a id="ch05fig05__title"></a>Valid locations of 3 × 3 patches in a 5 × 5 input feature map</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig05_alt.jpg"/></p>
+
+  <p class="noind">If you want to get an output feature map with the same spatial dimensions as the input, you can use <i class="calibre5">padding</i>. Padding consists of adding an appropriate number of rows and columns on each side of the input feature map so as to make it possible to fit center convolution windows around every input tile. For a 3 × 3 window, you add one column on the right, one column on the left, one row at the top, and one row at the bottom. For a 5 × 5 window, you add two rows (see <a href="#ch05fig06">figure 5.6</a>).</p>
+
+  <p class="notetitle" id="ch05fig06">Figure 5.6. <a id="ch05fig06__title"></a>Padding a 5 × 5 input in order to be able to extract 25 3 × 3 patches</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig06_alt.jpg"/></p>
+
+  <p class="noind">In <kbd class="calibre24">Conv2D</kbd> layers, padding is configurable via the <kbd class="calibre24">padding</kbd> argument, which takes two values: <kbd class="calibre24">"valid"</kbd>, which means no padding (only valid window locations will be used); and <kbd class="calibre24">"same"</kbd>, which means “pad in such a way as to have an output with the same width and height as the input.” The <kbd class="calibre24">padding</kbd> argument defaults to <kbd class="calibre24">"valid"</kbd>.</p>
+
+  <p class="notetitle" id="ch05lev3sec2"><a id="ch05lev3sec2__title"></a>Understanding convolution strides</p>
+
+  <p class="noind"><a id="iddle1115"></a><a id="iddle1133"></a><a id="iddle1135"></a><a id="iddle1593"></a><a id="iddle1598"></a><a id="iddle1927"></a>The other factor that can influence output size is the notion of <i class="calibre5">strides</i>. The description of convolution so far has assumed that the center tiles of the convolution windows are all contiguous. But the distance between two successive windows is a parameter of the convolution, called its <i class="calibre5">stride</i>, which defaults to 1. It’s possible to have <i class="calibre5">strided convolutions</i>: convolutions with a stride higher than 1. In <a href="#ch05fig07">figure 5.7</a>, you can see the patches extracted by a 3 × 3 convolution with stride 2 over a 5 × 5 input (without padding).</p>
+
+  <p class="notetitle" id="ch05fig07">Figure 5.7. <a id="ch05fig07__title"></a>3 × 3 convolution patches with 2 × 2 strides</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig07_alt.jpg"/></p>
+
+  <p class="noind">Using stride 2 means the width and height of the feature map are downsampled by a factor of 2 (in addition to any changes induced by border effects). Strided convolutions are rarely used in practice, although they can come in handy for some types of models; it’s good to be familiar with the concept.</p>
+
+  <p class="noind">To downsample feature maps, instead of strides, we tend to use the <i class="calibre5">max-pooling</i> operation, which you saw in action in the first convnet example. Let’s look at it in more depth.</p>
+
+  <h3 class="head1" id="ch05lev2sec2">5.1.2. <a id="ch05lev2sec2__title"></a>The max-pooling operation</h3>
+
+  <p class="noind">In the convnet example, you may have noticed that the size of the feature maps is halved after every <kbd class="calibre24">MaxPooling2D</kbd> layer. For instance, before the first <kbd class="calibre24">MaxPooling2D</kbd> layers, the feature map is 26 × 26, but the max-pooling operation halves it to 13 × 13. That’s the role of max pooling: to aggressively downsample feature maps, much like strided convolutions.</p>
+
+  <p class="noind">Max pooling consists of extracting windows from the input feature maps and outputting the max value of each channel. It’s conceptually similar to convolution, except that instead of transforming local patches via a learned linear transformation (the convolution kernel), they’re transformed via a hardcoded <kbd class="calibre24">max</kbd> tensor operation. A big difference from convolution is that max pooling is usually done with 2 × 2 windows and stride 2, in order to downsample the feature maps by a factor of 2. On the other hand, convolution is typically done with 3 × 3 windows and no stride (stride 1).</p>
+
+  <p class="noind">Why downsample feature maps this way? Why not remove the max-pooling layers and keep fairly large feature maps all the way up? Let’s look at this option. The convolutional base of the model would then look like this:</p>
+  <pre class="calibre4" id="PLd0e13474">model_no_max_pool = models.Sequential()
+model_no_max_pool.add(layers.Conv2D(32, (3, 3), activation='relu',
+                      input_shape=(28, 28, 1)))
+model_no_max_pool.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model_no_max_pool.add(layers.Conv2D(64, (3, 3), activation='relu'))</pre>
+
+  <p class="noind">Here’s a summary of the model:</p>
+  <pre class="calibre4" id="PLd0e13483">&gt;&gt;&gt; model_no_max_pool.summary()
+
+Layer (type)                     Output Shape          Param #
+================================================================
+conv2d_4 (Conv2D)                (None, 26, 26, 32)    320
+________________________________________________________________
+conv2d_5 (Conv2D)                (None, 24, 24, 64)    18496
+________________________________________________________________
+conv2d_6 (Conv2D)                (None, 22, 22, 64)    36928
+================================================================
+Total params: 55,744
+Trainable params: 55,744
+Non-trainable params: 0</pre>
+
+  <p class="noind">What’s wrong with this setup? Two things:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">It isn’t conducive to learning a spatial hierarchy of features. The 3 × 3 windows in the third layer will only contain information coming from 7 × 7 windows in the initial input. The high-level patterns learned by the convnet will still be very small with regard to the initial input, which may not be enough to learn to classify digits (try recognizing a digit by only looking at it through windows that are 7 × 7 pixels!). We need the features from the last convolution layer to contain information about the totality of the input.</li>
+
+    <li class="calibre17">The final feature map has 22 × 22 × 64 = 30,976 total coefficients per sample. This is huge. If you were to flatten it to stick a <kbd class="calibre24">Dense</kbd> layer of size 512 on top, that layer would have 15.8 million parameters. This is far too large for such a small model and would result in intense overfitting.</li>
+  </ul>
+
+  <p class="noind">In short, the reason to use downsampling is to reduce the number of feature-map coefficients to process, as well as to induce spatial-filter hierarchies by making successive convolution layers look at increasingly large windows (in terms of the fraction of the original input they cover).</p>
+
+  <p class="noind">Note that max pooling isn’t the only way you can achieve such downsampling. As you already know, you can also use strides in the prior convolution layer. And you can <a id="iddle1277"></a>use average pooling instead of max pooling, where each local input patch is transformed by taking the average value of each channel over the patch, rather than the max. But max pooling tends to work better than these alternative solutions. In a nutshell, the reason is that features tend to encode the spatial presence of some pattern or concept over the different tiles of the feature map (hence, the term <i class="calibre5">feature map</i>), and it’s more informative to look at the <i class="calibre5">maximal presence</i> of different features than at their <i class="calibre5">average presence</i>. So the most reasonable subsampling strategy is to first produce dense maps of features (via unstrided convolutions) and then look at the maximal activation of the features over small patches, rather than looking at sparser windows of the inputs (via strided convolutions) or averaging input patches, which could cause you to miss or dilute feature-presence information.</p>
+
+  <p class="noind">At this point, you should understand the basics of convnets—feature maps, convolution, and max pooling—and you know how to build a small convnet to solve a toy problem such as MNIST digits classification. Now let’s move on to more useful, practical applications.</p>
+
+  <h2 class="head" id="ch05lev1sec2"><a class="calibre3" id="ch05lev1sec2__title"></a>5.2. Training a convnet from scratch on a small dataset</h2>
+
+  <p class="noind"><a id="iddle1117"></a><a id="iddle1120"></a><a id="iddle1184"></a><a id="iddle1791"></a><a id="iddle1993"></a><a id="iddle1997"></a>Having to train an image-classification model using very little data is a common situation, which you’ll likely encounter in practice if you ever do computer vision in a professional context. A “few” samples can mean anywhere from a few hundred to a few tens of thousands of images. As a practical example, we’ll focus on classifying images as dogs or cats, in a dataset containing 4,000 pictures of cats and dogs (2,000 cats, 2,000 dogs). We’ll use 2,000 pictures for training—1,000 for validation, and 1,000 for testing.</p>
+
+  <p class="noind">In this section, we’ll review one basic strategy to tackle this problem: training a new model from scratch using what little data you have. You’ll start by naively training a small convnet on the 2,000 training samples, without any regularization, to set a baseline for what can be achieved. This will get you to a classification accuracy of 71%. At that point, the main issue will be overfitting. Then we’ll introduce <i class="calibre5">data augmentation</i>, a powerful technique for mitigating overfitting in computer vision. By using data augmentation, you’ll improve the network to reach an accuracy of 82%.</p>
+
+  <p class="noind">In the next section, we’ll review two more essential techniques for applying deep learning to small datasets: <i class="calibre5">feature extraction with a pretrained network</i> (which will get you to an accuracy of 90% to 96%) and <i class="calibre5">fine-tuning a pretrained network</i> (this will get you to a final accuracy of 97%). Together, these three strategies—training a small model from scratch, doing feature extraction using a pretrained model, and fine-tuning a pretrained model—will constitute your future toolbox for tackling the problem of performing image classification with small datasets.</p>
+
+  <h3 class="head1" id="ch05lev2sec3">5.2.1. <a id="ch05lev2sec3__title"></a>The relevance of deep learning for small-data problems</h3>
+
+  <p class="noind">You’ll sometimes hear that deep learning only works when lots of data is available. This is valid in part: one fundamental characteristic of deep learning is that it can find interesting features in the training data on its own, without any need for manual feature engineering, and this can only be achieved when lots of training examples are available. This is especially true for problems where the input samples are very high-dimensional, like images.</p>
+
+  <p class="noind">But what constitutes lots of samples is relative—relative to the size and depth of the network you’re trying to train, for starters. It isn’t possible to train a convnet to solve a complex problem with just a few tens of samples, but a few hundred can potentially suffice if the model is small and well regularized and the task is simple. Because convnets learn local, translation-invariant features, they’re highly data efficient on perceptual problems. Training a convnet from scratch on a very small image dataset will still yield reasonable results despite a relative lack of data, without the need for any custom feature engineering. You’ll see this in action in this section.</p>
+
+  <p class="noind">What’s more, deep-learning models are by nature highly repurposable: you can take, say, an image-classification or speech-to-text model trained on a large-scale dataset and reuse it on a significantly different problem with only minor changes. Specifically, <a id="iddle1996"></a>in the case of computer vision, many pretrained models (usually trained on the Image-Net dataset) are now publicly available for download and can be used to bootstrap powerful vision models out of very little data. That’s what you’ll do in the next section. Let’s start by getting your hands on the data.</p>
+
+  <h3 class="head1" id="ch05lev2sec4">5.2.2. <a id="ch05lev2sec4__title"></a>Downloading the data</h3>
+
+  <p class="noind">The Dogs vs. Cats dataset that you’ll use isn’t packaged with Keras. It was made available by Kaggle as part of a computer-vision competition in late 2013, back when convnets weren’t mainstream. You can download the original dataset from <a href="http://www.kaggle.com/c/dogs-vs-cats/data">www.kaggle.com/c/dogs-vs-cats/data</a> (you’ll need to create a Kaggle account if you don’t already have one—don’t worry, the process is painless).</p>
+
+  <p class="noind">The pictures are medium-resolution color JPEGs. <a href="#ch05fig08">Figure 5.8</a> shows some examples.</p>
+
+  <p class="notetitle" id="ch05fig08">Figure 5.8. <a id="ch05fig08__title"></a>Samples from the Dogs vs. Cats dataset. Sizes weren’t modified: the samples are heterogeneous in size, appearance, and so on.</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig08_alt.jpg"/></p>
+
+  <p class="noind">Unsurprisingly, the dogs-versus-cats Kaggle competition in 2013 was won by entrants who used convnets. The best entries achieved up to 95% accuracy. In this example, you’ll get fairly close to this accuracy (in the next section), even though you’ll train your models on less than 10% of the data that was available to the competitors.</p>
+
+  <p class="noind">This dataset contains 25,000 images of dogs and cats (12,500 from each class) and is 543 MB (compressed). After downloading and uncompressing it, you’ll create a new dataset containing three subsets: a training set with 1,000 samples of each class, a validation set with 500 samples of each class, and a test set with 500 samples of each class.</p>
+
+  <p class="noind">Following is the code to do this.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05ex04">Listing 5.4. <a id="ch05ex04__title"></a>Copying images to training, validation, and test directories</p>
+  <pre class="calibre4" id="PLd0e13679">import os, shutil
+
+original_dataset_dir = '/Users/fchollet/Downloads/kaggle_original_data'    <span class="cambriamathin">❶</span>
+
+base_dir = '/Users/fchollet/Downloads/cats_and_dogs_small'                 <span class="cambriamathin">❷</span>
+os.mkdir(base_dir)
+
+train_dir = os.path.join(base_dir, 'train')                                <span class="cambriamathin">❸</span>
+os.mkdir(train_dir)
+validation_dir = os.path.join(base_dir, 'validation')                      <span class="cambriamathin">❸</span>
+os.mkdir(validation_dir)
+test_dir = os.path.join(base_dir, 'test')                                  <span class="cambriamathin">❸</span>
+os.mkdir(test_dir)
+
+train_cats_dir = os.path.join(train_dir, 'cats')                           <span class="cambriamathin">❹</span>
+os.mkdir(train_cats_dir)                                                   <span class="cambriamathin">❹</span>
+
+train_dogs_dir = os.path.join(train_dir, 'dogs')                           <span class="cambriamathin">❺</span>
+os.mkdir(train_dogs_dir)                                                   <span class="cambriamathin">❺</span>
+
+validation_cats_dir = os.path.join(validation_dir, 'cats')                 <span class="cambriamathin">❻</span>
+os.mkdir(validation_cats_dir)                                              <span class="cambriamathin">❻</span>
+
+validation_dogs_dir = os.path.join(validation_dir, 'dogs')                 <span class="cambriamathin">❼</span>
+os.mkdir(validation_dogs_dir)                                              <span class="cambriamathin">❼</span>
+
+test_cats_dir = os.path.join(test_dir, 'cats')                             <span class="cambriamathin">❽</span>
+os.mkdir(test_cats_dir)                                                    <span class="cambriamathin">❽</span>
+
+test_dogs_dir = os.path.join(test_dir, 'dogs')                             <span class="cambriamathin">❾</span>
+os.mkdir(test_dogs_dir)                                                    <span class="cambriamathin">❾</span>
+
+fnames = ['cat.{}.jpg'.format(i) for i in range(1000)]                     <span class="cambriamathin">❿</span>
+for fname in fnames:                                                       <span class="cambriamathin">❿</span>
+    src = os.path.join(original_dataset_dir, fname)                        <span class="cambriamathin">❿</span>
+    dst = os.path.join(train_cats_dir, fname)                              <span class="cambriamathin">❿</span>
+    shutil.copyfile(src, dst)                                              <span class="cambriamathin">❿</span>
+
+fnames = ['cat.{}.jpg'.format(i) for i in range(1000, 1500)]               <span class="cambriamathin">⓫</span>
+for fname in fnames:                                                       <span class="cambriamathin">⓫</span>
+    src = os.path.join(original_dataset_dir, fname)                        <span class="cambriamathin">⓫</span>
+    dst = os.path.join(validation_cats_dir, fname)                         <span class="cambriamathin">⓫</span>
+    shutil.copyfile(src, dst)                                              <span class="cambriamathin">⓫</span>
+
+fnames = ['cat.{}.jpg'.format(i) for i in range(1500, 2000)]               <span class="cambriamathin">⓬</span>
+for fname in fnames:                                                       <span class="cambriamathin">⓬</span>
+    src = os.path.join(original_dataset_dir, fname)                        <span class="cambriamathin">⓬</span>
+    dst = os.path.join(test_cats_dir, fname)                               <span class="cambriamathin">⓬</span>
+    shutil.copyfile(src, dst)                                              <span class="cambriamathin">⓬</span>
+
+fnames = ['dog.{}.jpg'.format(i) for i in range(1000)]                     <span class="cambriamathin">⓭</span>
+for fname in fnames:                                                       <span class="cambriamathin">⓭</span>
+    src = os.path.join(original_dataset_dir, fname)                        <span class="cambriamathin">⓭</span>
+    dst = os.path.join(train_dogs_dir, fname)                              <span class="cambriamathin">⓭</span>
+    shutil.copyfile(src, dst)                                              <span class="cambriamathin">⓭</span>
+fnames = ['dog.{}.jpg'.format(i) for i in range(1000, 1500)]               <span class="cambriamathin">⓮</span>
+for fname in fnames:                                                       <span class="cambriamathin">⓮</span>
+    src = os.path.join(original_dataset_dir, fname)                        <span class="cambriamathin">⓮</span>
+    dst = os.path.join(validation_dogs_dir, fname)                         <span class="cambriamathin">⓮</span>
+    shutil.copyfile(src, dst)                                              <span class="cambriamathin">⓮</span>
+
+fnames = ['dog.{}.jpg'.format(i) for i in range(1500, 2000)]               <span class="cambriamathin">⓯</span>
+for fname in fnames:                                                       <span class="cambriamathin">⓯</span>
+    src = os.path.join(original_dataset_dir, fname)                        <span class="cambriamathin">⓯</span>
+    dst = os.path.join(test_dogs_dir, fname)                               <span class="cambriamathin">⓯</span>
+    shutil.copyfile(src, dst)                                              <span class="cambriamathin">⓯</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1118"></a><a id="iddle1293"></a><a id="iddle1994"></a><span class="cambriamathin1">❶</span> Path to the directory where the original dataset was uncompressed</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Directory where you’ll store your smaller dataset</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Directories for the training, validation, and test splits</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Directory with training cat pictures</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Directory with training dog pictures</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Directory with validation cat pictures</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❼</span> Directory with validation dog pictures</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❽</span> Directory with test cat pictures</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❾</span> Directory with test dog pictures</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❿</span> Copies the first 1,000 cat images to train_cats_dir</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">⓫</span> Copies the next 500 cat images to validation_cats_dir</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">⓬</span> Copies the next 500 cat images to test_cats_dir</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">⓭</span> Copies the first 1,000 dog images to train_dogs_dir</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">⓮</span> Copies the next 500 dog images to validation_dogs_dir</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">⓯</span> Copies the next 500 dog images to test_dogs_dir</p>
+  </div>
+
+  <p class="noind">As a sanity check, let’s count how many pictures are in each training split (train/validation/test):</p>
+  <pre class="calibre4" id="PLd0e14027">&gt;&gt;&gt; print('total training cat images:', len(os.listdir(train_cats_dir)))
+total training cat images: 1000
+&gt;&gt;&gt; print('total training dog images:', len(os.listdir(train_dogs_dir)))
+total training dog images: 1000
+&gt;&gt;&gt; print('total validation cat images:', len(os.listdir(validation_cats_dir)))
+total validation cat images: 500
+&gt;&gt;&gt; print('total validation dog images:', len(os.listdir(validation_dogs_dir)))
+total validation dog images: 500
+&gt;&gt;&gt; print('total test cat images:', len(os.listdir(test_cats_dir)))
+total test cat images: 500
+&gt;&gt;&gt; print('total test dog images:', len(os.listdir(test_dogs_dir)))
+total test dog images: 500</pre>
+
+  <p class="noind">So you do indeed have 2,000 training images, 1,000 validation images, and 1,000 test images. Each split contains the same number of samples from each class: this is a balanced binary-classification problem, which means classification accuracy will be an appropriate measure of success.</p>
+
+  <h3 class="head1" id="ch05lev2sec5">5.2.3. <a id="ch05lev2sec5__title"></a>Building your network</h3>
+
+  <p class="noind">You built a small convnet for MNIST in the previous example, so you should be familiar with such convnets. You’ll reuse the same general structure: the convnet will be a stack of alternated <kbd class="calibre24">Conv2D</kbd> (with <kbd class="calibre24">relu</kbd> activation) and <kbd class="calibre24">MaxPooling2D</kbd> layers.</p>
+
+  <p class="noind">But because you’re dealing with bigger images and a more complex problem, you’ll make your network larger, accordingly: it will have one more <kbd class="calibre24">Conv2D</kbd> + <kbd class="calibre24">MaxPooling2D</kbd> stage. This serves both to augment the capacity of the network and to further reduce the size of the feature maps so they aren’t overly large when you reach the <kbd class="calibre24">Flatten</kbd> layer. Here, because you start from inputs of size 150 × 150 (a somewhat arbitrary choice), you end up with feature maps of size 7 × 7 just before the <kbd class="calibre24">Flatten</kbd> layer.</p>
+  <hr class="calibre25"/>
+
+  <p class="notetitle" id="ch05note01">Note</p>
+
+  <p class="noindclose">The depth of the feature maps progressively increases in the network (from 32 to 128), whereas the size of the feature maps decreases (from 150 × 150 to 7 × 7). This is a pattern you’ll see in almost all convnets.</p>
+  <hr class="calibre25"/>
+
+  <p class="noind">Because you’re attacking a binary-classification problem, you’ll end the network with a single unit (a <kbd class="calibre24">Dense</kbd> layer of size 1) and a <kbd class="calibre24">sigmoid</kbd> activation. This unit will encode the probability that the network is looking at one class or the other.</p>
+
+  <p class="notetitle" id="ch05ex05">Listing 5.5. <a id="ch05ex05__title"></a>Instantiating a small convnet for dogs vs. cats classification</p>
+  <pre class="calibre4" id="PLd0e14091">from keras import layers
+from keras import models
+
+model = models.Sequential()
+model.add(layers.Conv2D(32, (3, 3), activation='relu',
+                        input_shape=(150, 150, 3)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Flatten())
+model.add(layers.Dense(512, activation='relu'))
+model.add(layers.Dense(1, activation='sigmoid'))</pre>
+
+  <p class="noind">Let’s look at how the dimensions of the feature maps change with every successive layer:</p>
+  <pre class="calibre4" id="PLd0e14100">&gt;&gt;&gt; model.summary()
+Layer (type)                     Output Shape          Param #
+================================================================
+conv2d_1 (Conv2D)                (None, 148, 148, 32)  896
+________________________________________________________________
+maxpooling2d_1 (MaxPooling2D)    (None, 74, 74, 32)    0
+________________________________________________________________
+conv2d_2 (Conv2D)                (None, 72, 72, 64)    18496
+________________________________________________________________
+maxpooling2d_2 (MaxPooling2D)    (None, 36, 36, 64)    0
+________________________________________________________________
+conv2d_3 (Conv2D)                (None, 34, 34, 128)   73856
+________________________________________________________________
+maxpooling2d_3 (MaxPooling2D)    (None, 17, 17, 128)   0
+________________________________________________________________
+conv2d_4 (Conv2D)                (None, 15, 15, 128)   147584
+________________________________________________________________
+maxpooling2d_4 (MaxPooling2D)    (None, 7, 7, 128)     0
+________________________________________________________________
+flatten_1 (Flatten)              (None, 6272)          0
+________________________________________________________________
+dense_1 (Dense)                  (None, 512)           3211776
+________________________________________________________________
+dense_2 (Dense)                  (None, 1)             513
+================================================================
+Total params: 3,453,121
+Trainable params: 3,453,121
+Non-trainable params: 0</pre>
+
+  <p class="noind"><a id="iddle1119"></a><a id="iddle1160"></a><a id="iddle1404"></a><a id="iddle1482"></a><a id="iddle1781"></a><a id="iddle1783"></a><a id="iddle1853"></a><a id="iddle1995"></a>For the compilation step, you’ll go with the <kbd class="calibre24">RMSprop</kbd> optimizer, as usual. Because you ended the network with a single sigmoid unit, you’ll use binary crossentropy as the loss (as a reminder, check out <a href="../Text/04.html#ch04table01">table 4.1</a> for a cheatsheet on what loss function to use in various situations).</p>
+
+  <p class="notetitle" id="ch05ex06">Listing 5.6. <a id="ch05ex06__title"></a>Configuring the model for training</p>
+  <pre class="calibre4" id="PLd0e14184">from keras import optimizers
+
+model.compile(loss='binary_crossentropy',
+              optimizer=optimizers.RMSprop(lr=1e-4),
+              metrics=['acc'])</pre>
+
+  <h3 class="head1" id="ch05lev2sec6">5.2.4. <a id="ch05lev2sec6__title"></a>Data preprocessing</h3>
+
+  <p class="noind">As you know by now, data should be formatted into appropriately preprocessed floating-point tensors before being fed into the network. Currently, the data sits on a drive as JPEG files, so the steps for getting it into the network are roughly as follows:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Read the picture files.</li>
+
+    <li class="calibre17">Decode the JPEG content to RGB grids of pixels.</li>
+
+    <li class="calibre17">Convert these into floating-point tensors.</li>
+
+    <li class="calibre17">Rescale the pixel values (between 0 and 255) to the [0, 1] interval (as you know, neural networks prefer to deal with small input values).</li>
+  </ol>
+
+  <p class="noind">It may seem a bit daunting, but fortunately Keras has utilities to take care of these steps automatically. Keras has a module with image-processing helper tools, located at <kbd class="calibre24">keras.preprocessing.image</kbd>. In particular, it contains the class <kbd class="calibre24">ImageDataGenerator</kbd>, which lets you quickly set up Python generators that can automatically turn image files on disk into batches of preprocessed tensors. This is what you’ll use here.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05ex07">Listing 5.7. <a id="ch05ex07__title"></a>Using <kbd class="calibre24">ImageDataGenerator</kbd> to read images from directories</p>
+  <pre class="calibre4" id="PLd0e14239">from keras.preprocessing.image import ImageDataGenerator
+
+train_datagen = ImageDataGenerator(rescale=1./255)             <span class="cambriamathin">❶</span>
+test_datagen = ImageDataGenerator(rescale=1./255)              <span class="cambriamathin">❶</span>
+
+train_generator = train_datagen.flow_from_directory(
+        train_dir,                                             <span class="cambriamathin">❷</span>
+        target_size=(150, 150)                                 <span class="cambriamathin">❸</span>
+        batch_size=20,
+        class_mode='binary')                                   <span class="cambriamathin">❹</span>
+
+validation_generator = test_datagen.flow_from_directory(
+        validation_dir,
+        target_size=(150, 150),
+        batch_size=20,
+        class_mode='binary')</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1292"></a><a id="iddle1922"></a><a id="iddle2108"></a><span class="cambriamathin1">❶</span> Rescales all images by 1/255</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Target directory</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Resizes all images to 150 × 150</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Because you use binary_crossentropy loss, you need binary labels.</p>
+  </div>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch05sb01">Understanding Python generators</b>
+
+    <p class="noind">A <i class="calibre5">Python generator</i> is an object that acts as an iterator: it’s an object you can use with the <kbd class="calibre24">for</kbd> <kbd class="calibre24">...</kbd> <kbd class="calibre24">in</kbd> operator. Generators are built using the <kbd class="calibre24">yield</kbd> operator.</p>
+
+    <p class="noind">Here is an example of a generator that yields integers:</p>
+    <pre class="calibre4" id="PLd0e14341">def generator():
+    i = 0
+    while True:
+        i += 1
+        yield i
+
+for item in generator():
+    print(item)
+    if item &gt; 4:
+        break</pre>
+
+    <p class="noind">It prints this:</p>
+    <pre class="calibre4" id="PLd0e14350">1 2 3 4 5</pre>
+  </div>
+  <hr class="calibre25"/>
+
+  <p class="noind">Let’s look at the output of one of these generators: it yields batches of 150 × 150 RGB images (shape <kbd class="calibre24">(20, 150, 150, 3)</kbd>) and binary labels (shape <kbd class="calibre24">(20,)</kbd>). There are 20 <a id="iddle2040"></a><a id="iddle2041"></a>samples in each batch (the batch size). Note that the generator yields these batches indefinitely: it loops endlessly over the images in the target folder. For this reason, you need to <kbd class="calibre24">break</kbd> the iteration loop at some point:</p>
+  <pre class="calibre4" id="PLd0e14381">&gt;&gt;&gt; for data_batch, labels_batch in train_generator:
+&gt;&gt;&gt;     print('data batch shape:', data_batch.shape)
+&gt;&gt;&gt;     print('labels batch shape:', labels_batch.shape)
+&gt;&gt;&gt;     break
+data batch shape: (20, 150, 150, 3)
+labels batch shape: (20,)</pre>
+
+  <p class="noind">Let’s fit the model to the data using the generator. You do so using the <kbd class="calibre24">fit_generator</kbd> method, the equivalent of <kbd class="calibre24">fit</kbd> for data generators like this one. It expects as its first argument a Python generator that will yield batches of inputs and targets indefinitely, like this one does. Because the data is being generated endlessly, the Keras model needs to know how many samples to draw from the generator before declaring an epoch over. This is the role of the <kbd class="calibre24">steps_per_epoch</kbd> argument: after having drawn <kbd class="calibre24">steps_per_epoch</kbd> batches from the generator—that is, after having run for <kbd class="calibre24">steps_per_epoch</kbd> gradient descent steps—the fitting process will go to the next epoch. In this case, batches are 20 samples, so it will take 100 batches until you see your target of 2,000 samples.</p>
+
+  <p class="noind">When using <kbd class="calibre24">fit_generator</kbd>, you can pass a <kbd class="calibre24">validation_data</kbd> argument, much as with the <kbd class="calibre24">fit</kbd> method. It’s important to note that this argument is allowed to be a data generator, but it could also be a tuple of Numpy arrays. If you pass a generator as <kbd class="calibre24">validation_data</kbd>, then this generator is expected to yield batches of validation data endlessly; thus you should also specify the <kbd class="calibre24">validation_steps</kbd> argument, which tells the process how many batches to draw from the validation generator for evaluation.</p>
+
+  <p class="notetitle" id="ch05ex08">Listing 5.8. <a id="ch05ex08__title"></a>Fitting the model using a batch generator</p>
+  <pre class="calibre4" id="PLd0e14426">history = model.fit_generator(
+      train_generator,
+      steps_per_epoch=100,
+      epochs=30,
+      validation_data=validation_generator,
+      validation_steps=50)</pre>
+
+  <p class="noind">It’s good practice to always save your models after training.</p>
+
+  <p class="notetitle" id="ch05ex09">Listing 5.9. <a id="ch05ex09__title"></a>Saving the model</p>
+  <pre class="calibre4" id="PLd0e14438">model.save('cats_and_dogs_small_1.h5')</pre>
+
+  <p class="noind">Let’s plot the loss and accuracy of the model over the training and validation data during training (see <a href="#ch05fig09">figures 5.9</a> and <a href="#ch05fig10">5.10</a>).</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05fig09">Figure 5.9. <a id="ch05fig09__title"></a><a id="iddle1041"></a><a id="iddle1121"></a><a id="iddle1147"></a><a id="iddle1998"></a>Training and validation accuracy</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig09.jpg"/></p>
+
+  <p class="notetitle" id="ch05fig10">Figure 5.10. <a id="ch05fig10__title"></a>Training and validation loss</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig10.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex10">Listing 5.10. <a id="ch05ex10__title"></a>Displaying curves of loss and accuracy during training</p>
+  <pre class="calibre4" id="PLd0e14520">import matplotlib.pyplot as plt
+
+acc = history.history['acc']
+val_acc = history.history['val_acc']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+epochs = range(1, len(acc) + 1)
+
+plt.plot(epochs, acc, 'bo', label='Training acc')
+plt.plot(epochs, val_acc, 'b', label='Validation acc')
+plt.title('Training and validation accuracy')
+plt.legend()
+
+plt.figure()
+
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+
+plt.show()</pre>
+
+  <p class="noind"><a id="iddle1286"></a><a id="iddle1376"></a><a id="iddle1386"></a><a id="iddle1405"></a><a id="iddle1411"></a><a id="iddle1857"></a><a id="iddle1895"></a><a id="iddle2072"></a><a id="iddle2110"></a>These plots are characteristic of overfitting. The training accuracy increases linearly over time, until it reaches nearly 100%, whereas the validation accuracy stalls at 70–72%. The validation loss reaches its minimum after only five epochs and then stalls, whereas the training loss keeps decreasing linearly until it reaches nearly 0.</p>
+
+  <p class="noind">Because you have relatively few training samples (2,000), overfitting will be your number-one concern. You already know about a number of techniques that can help mitigate overfitting, such as dropout and weight decay (L2 regularization). We’re now going to work with a new one, specific to computer vision and used almost universally when processing images with deep-learning models: <i class="calibre5">data augmentation</i>.</p>
+
+  <h3 class="head1" id="ch05lev2sec7">5.2.5. <a id="ch05lev2sec7__title"></a>Using data augmentation</h3>
+
+  <p class="noind">Overfitting is caused by having too few samples to learn from, rendering you unable to train a model that can generalize to new data. Given infinite data, your model would be exposed to every possible aspect of the data distribution at hand: you would never overfit. Data augmentation takes the approach of generating more training data from existing training samples, by <i class="calibre5">augmenting</i> the samples via a number of random transformations that yield believable-looking images. The goal is that at training time, your model will never see the exact same picture twice. This helps expose the model to more aspects of the data and generalize better.</p>
+
+  <p class="noind">In Keras, this can be done by configuring a number of random transformations to be performed on the images read by the <kbd class="calibre24">ImageDataGenerator</kbd> instance. Let’s get started with an example.</p>
+
+  <p class="notetitle" id="ch05ex11">Listing 5.11. <a id="ch05ex11__title"></a>Setting up a data augmentation configuration via <kbd class="calibre24">ImageDataGenerator</kbd></p>
+  <pre class="calibre4" id="PLd0e14608">datagen = ImageDataGenerator(
+      rotation_range=40,
+      width_shift_range=0.2,
+      height_shift_range=0.2,
+      shear_range=0.2,
+      zoom_range=0.2,
+      horizontal_flip=True,
+      fill_mode='nearest')</pre>
+
+  <p class="noind">These are just a few of the options available (for more, see the Keras documentation). Let’s quickly go over this code:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><kbd class="calibre24">rotation_range</kbd> is a value in degrees (0–180), a range within which to randomly rotate pictures.</li>
+
+    <li class="calibre17"><kbd class="calibre24">width_shift</kbd> and <kbd class="calibre24">height_shift</kbd> are ranges (as a fraction of total width or height) within which to randomly translate pictures vertically or horizontally.</li>
+
+    <li class="calibre17"><kbd class="calibre24">shear_range</kbd> is for randomly applying shearing transformations.</li>
+
+    <li class="calibre17"><a id="iddle1252"></a><kbd class="calibre24">zoom_range</kbd> is for randomly zooming inside pictures.</li>
+
+    <li class="calibre17"><kbd class="calibre24">horizontal_flip</kbd> is for randomly flipping half the images horizontally—relevant when there are no assumptions of horizontal asymmetry (for example, real-world pictures).</li>
+
+    <li class="calibre17"><kbd class="calibre24">fill_mode</kbd> is the strategy used for filling in newly created pixels, which can appear after a rotation or a width/height shift.</li>
+  </ul>
+
+  <p class="noind">Let’s look at the augmented images (see <a href="#ch05fig11">figure 5.11</a>).</p>
+
+  <p class="notetitle" id="ch05fig11">Figure 5.11. <a id="ch05fig11__title"></a>Generation of cat pictures via random data augmentation</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig11.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex12">Listing 5.12. <a id="ch05ex12__title"></a>Displaying some randomly augmented training images</p>
+  <pre class="calibre4" id="PLd0e14694">from keras.preprocessing import image                           <span class="cambriamathin">❶</span>
+
+fnames = [os.path.join(train_cats_dir, fname) for
+     fname in os.listdir(train_cats_dir)]
+
+img_path = fnames[3]                                            <span class="cambriamathin">❷</span>
+
+img = image.load_img(img_path, target_size=(150, 150))          <span class="cambriamathin">❸</span>
+
+x = image.img_to_array(img)                                     <span class="cambriamathin">❹</span>
+x = x.reshape((1,) + x.shape)                                   <span class="cambriamathin">❺</span>
+
+i = 0                                                           <span class="cambriamathin">❻</span>
+for batch in datagen.flow(x, batch_size=1):                     <span class="cambriamathin">❻</span>
+    plt.figure(i)                                               <span class="cambriamathin">❻</span>
+    imgplot = plt.imshow(image.array_to_img(batch[0]))          <span class="cambriamathin">❻</span>
+    i += 1                                                      <span class="cambriamathin">❻</span>
+    if i % 4 == 0:                                              <span class="cambriamathin">❻</span>
+        break                                                   <span class="cambriamathin">❻</span>
+
+plt.show()</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Module with image-preprocessing utilities</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Chooses one image to augment</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Reads the image and resizes it</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Converts it to a Numpy array with shape (150, 150, 3)</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Reshapes it to (1, 150, 150, 3)</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Generates batches of randomly transformed images. Loops indefinitely, so you need to break the loop at some point!</p>
+  </div>
+
+  <p class="noind">If you train a new network using this data-augmentation configuration, the network will never see the same input twice. But the inputs it sees are still heavily intercorrelated, because they come from a small number of original images—you can’t produce new information, you can only remix existing information. As such, this may not be enough to completely get rid of overfitting. To further fight overfitting, you’ll also add a <kbd class="calibre24">Dropout</kbd> layer to your model, right before the densely connected classifier.</p>
+
+  <p class="notetitle" id="ch05ex13">Listing 5.13. <a id="ch05ex13__title"></a>Defining a new convnet that includes dropout</p>
+  <pre class="calibre4" id="PLd0e14810">model = models.Sequential()
+model.add(layers.Conv2D(32, (3, 3), activation='relu',
+                        input_shape=(150, 150, 3)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Flatten())
+model.add(layers.Dropout(0.5))
+model.add(layers.Dense(512, activation='relu'))
+model.add(layers.Dense(1, activation='sigmoid'))
+
+model.compile(loss='binary_crossentropy',
+              optimizer=optimizers.RMSprop(lr=1e-4),
+              metrics=['acc'])</pre>
+
+  <p class="noind">Let’s train the network using data augmentation and dropout.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05ex14">Listing 5.14. <a id="ch05ex14__title"></a>Training the convnet using data-augmentation generators</p>
+  <pre class="calibre4" id="PLd0e14824">train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=40,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,)
+
+test_datagen = ImageDataGenerator(rescale=1./255)               <span class="cambriamathin">❶</span>
+
+train_generator = train_datagen.flow_from_directory(
+        train_dir,                                              <span class="cambriamathin">❷</span>
+        target_size=(150, 150),                                 <span class="cambriamathin">❸</span>
+        batch_size=32,
+        class_mode='binary')                                    <span class="cambriamathin">❹</span>
+
+validation_generator = test_datagen.flow_from_directory(
+        validation_dir,
+        target_size=(150, 150),
+        batch_size=32,
+        class_mode='binary')
+
+history = model.fit_generator(
+      train_generator,
+      steps_per_epoch=100,
+      epochs=100,
+      validation_data=validation_generator,
+      validation_steps=50)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Note that the validation data shouldn’t be augmented!</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Target directory</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Resizes all images to 150 × 150</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Because you use binary_crossentropy loss, you need binary labels.</p>
+  </div>
+
+  <p class="noind">Let’s save the model—you’ll use it in <a href="#ch05lev1sec4">section 5.4</a>.</p>
+
+  <p class="notetitle" id="ch05ex15">Listing 5.15. <a id="ch05ex15__title"></a>Saving the model</p>
+  <pre class="calibre4" id="PLd0e14890">model.save('cats_and_dogs_small_2.h5')</pre>
+
+  <p class="noind">And let’s plot the results again: see <a href="#ch05fig12">figures 5.12</a> and <a href="#ch05fig13">5.13</a>. Thanks to data augmentation and dropout, you’re no longer overfitting: the training curves are closely tracking the validation curves. You now reach an accuracy of 82%, a 15% relative improvement over the non-regularized model.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05fig12">Figure 5.12. <a id="ch05fig12__title"></a>Training and validation accuracy with data augmentation</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig12.jpg"/></p>
+
+  <p class="notetitle" id="ch05fig13">Figure 5.13. <a id="ch05fig13__title"></a>Training and validation loss with data augmentation</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig13.jpg"/></p>
+
+  <p class="noind"><a id="iddle1122"></a><a id="iddle1123"></a><a id="iddle1130"></a><a id="iddle1279"></a><a id="iddle1785"></a><a id="iddle1786"></a><a id="iddle1792"></a><a id="iddle1902"></a><a id="iddle2109"></a>By using regularization techniques even further, and by tuning the network’s parameters (such as the number of filters per convolution layer, or the number of layers in the network), you may be able to get an even better accuracy, likely up to 86% or 87%. But it would prove difficult to go any higher just by training your own convnet from scratch, because you have so little data to work with. As a next step to improve your accuracy on this problem, you’ll have to use a pretrained model, which is the focus of the next two sections.</p>
+
+  <h2 class="head" id="ch05lev1sec3"><a class="calibre3" id="ch05lev1sec3__title"></a>5.3. Using a pretrained convnet</h2>
+
+  <p class="noind">A common and highly effective approach to deep learning on small image datasets is to use a pretrained network. A <i class="calibre5">pretrained network</i> is a saved network that was previously trained on a large dataset, typically on a large-scale image-classification task. If this original dataset is large enough and general enough, then the spatial hierarchy of features learned by the pretrained network can effectively act as a generic model of the visual world, and hence its features can prove useful for many different computer-vision problems, even though these new problems may involve completely different classes than those of the original task. For instance, you might train a network on Image-Net (where classes are mostly animals and everyday objects) and then repurpose this trained network for something as remote as identifying furniture items in images. Such portability of learned features across different problems is a key advantage of deep learning compared to many older, shallow-learning approaches, and it makes deep learning very effective for small-data problems.</p>
+
+  <p class="noind">In this case, let’s consider a large convnet trained on the ImageNet dataset (1.4 million labeled images and 1,000 different classes). ImageNet contains many animal classes, including different species of cats and dogs, and you can thus expect it to perform well on the dogs-versus-cats classification problem.</p>
+
+  <p class="noind">You’ll use the VGG16 architecture, developed by Karen Simonyan and Andrew Zisserman in 2014; it’s a simple and widely used convnet architecture for ImageNet.<sup class="calibre19">[<a href="#ch05fn01" class="calibre13">1</a>]</sup> Although it’s an older model, far from the current state of the art and somewhat heavier than many other recent models, I chose it because its architecture is similar to what you’re already familiar with and is easy to understand without introducing any new concepts. This may be your first encounter with one of these cutesy model names—VGG, ResNet, Inception, Inception-ResNet, Xception, and so on; you’ll get used to them, because they will come up frequently if you keep doing deep learning for computer vision.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch05fn01" class="calibre13">1</a></sup></p>
+
+    <div class="calibre21">
+      Karen Simonyan and Andrew Zisserman, “Very Deep Convolutional Networks for Large-Scale Image Recognition,” arXiv (2014), <a href="https://arxiv.org/abs/1409.1556">https://arxiv.org/abs/1409.1556</a>.
+    </div>
+  </blockquote>
+
+  <p class="noind">There are two ways to use a pretrained network: <i class="calibre5">feature extraction</i> and <i class="calibre5">fine-tuning</i>. We’ll cover both of them. Let’s start with feature extraction.</p>
+
+  <h3 class="head1" id="ch05lev2sec8">5.3.1. <a id="ch05lev2sec8__title"></a>Feature extraction</h3>
+
+  <p class="noind">Feature extraction consists of using the representations learned by a previous network to extract interesting features from new samples. These features are then run through a new classifier, which is trained from scratch.</p>
+
+  <p class="noind">As you saw previously, convnets used for image classification comprise two parts: they start with a series of pooling and convolution layers, and they end with a densely connected classifier. The first part is called the <i class="calibre5">convolutional base</i> of the model. In the case of convnets, feature extraction consists of taking the convolutional base of a <a id="iddle1408"></a><a id="iddle1420"></a><a id="iddle1429"></a><a id="iddle1479"></a><a id="iddle2069"></a>previously trained network, running the new data through it, and training a new classifier on top of the output (see <a href="#ch05fig14">figure 5.14</a>).</p>
+
+  <p class="notetitle" id="ch05fig14">Figure 5.14. <a id="ch05fig14__title"></a>Swapping classifiers while keeping the same convolutional base</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig14_alt.jpg"/></p>
+
+  <p class="noind">Why only reuse the convolutional base? Could you reuse the densely connected classifier as well? In general, doing so should be avoided. The reason is that the representations learned by the convolutional base are likely to be more generic and therefore more reusable: the feature maps of a convnet are presence maps of generic concepts over a picture, which is likely to be useful regardless of the computer-vision problem at hand. But the representations learned by the classifier will necessarily be specific to the set of classes on which the model was trained—they will only contain information about the presence probability of this or that class in the entire picture. Additionally, representations found in densely connected layers no longer contain any information about <i class="calibre5">where</i> objects are located in the input image: these layers get rid of the notion of space, whereas the object location is still described by convolutional feature maps. For problems where object location matters, densely connected features are largely useless.</p>
+
+  <p class="noind">Note that the level of generality (and therefore reusability) of the representations extracted by specific convolution layers depends on the depth of the layer in the model. Layers that come earlier in the model extract local, highly generic feature maps (such as visual edges, colors, and textures), whereas layers that are higher up extract more-abstract concepts (such as “cat ear” or “dog eye”). So if your new dataset differs a lot from the dataset on which the original model was trained, you may be better off using only the first few layers of the model to do feature extraction, rather than using the entire convolutional base.</p>
+
+  <p class="noind">In this case, because the ImageNet class set contains multiple dog and cat classes, it’s likely to be beneficial to reuse the information contained in the densely connected layers of the original model. But we’ll choose not to, in order to cover the more general case where the class set of the new problem doesn’t overlap the class set of the original model. Let’s put this in practice by using the convolutional base of the VGG16 network, trained on ImageNet, to extract interesting features from cat and dog images, and then train a dogs-versus-cats classifier on top of these features.</p>
+
+  <p class="noind">The VGG16 model, among others, comes prepackaged with Keras. You can import it from the <kbd class="calibre24">keras.applications</kbd> module. Here’s the list of image-classification models (all pretrained on the ImageNet dataset) that are available as part of <kbd class="calibre24">keras.applications</kbd>:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Xception</li>
+
+    <li class="calibre17">Inception V3</li>
+
+    <li class="calibre17">ResNet50</li>
+
+    <li class="calibre17">VGG16</li>
+
+    <li class="calibre17">VGG19</li>
+
+    <li class="calibre17">MobileNet</li>
+  </ul>
+
+  <p class="noind">Let’s instantiate the VGG16 model.</p>
+
+  <p class="notetitle" id="ch05ex16">Listing 5.16. <a id="ch05ex16__title"></a>Instantiating the VGG16 convolutional base</p>
+  <pre class="calibre4" id="PLd0e15149">from keras.applications import VGG16
+
+conv_base = VGG16(weights='imagenet',
+                  include_top=False,
+                  input_shape=(150, 150, 3))</pre>
+
+  <p class="noind">You pass three arguments to the constructor:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><kbd class="calibre24">weights</kbd> specifies the weight checkpoint from which to initialize the model.</li>
+
+    <li class="calibre17"><kbd class="calibre24">include_top</kbd> refers to including (or not) the densely connected classifier on top of the network. By default, this densely connected classifier corresponds to the 1,000 classes from ImageNet. Because you intend to use your own densely connected classifier (with only two classes: <kbd class="calibre24">cat</kbd> and <kbd class="calibre24">dog</kbd>), you don’t need to include it.</li>
+
+    <li class="calibre17"><kbd class="calibre24">input_shape</kbd> is the shape of the image tensors that you’ll feed to the network. This argument is purely optional: if you don’t pass it, the network will be able to process inputs of any size.</li>
+  </ul>
+
+  <p class="noind">Here’s the detail of the architecture of the VGG16 convolutional base. It’s similar to the simple convnets you’re already familiar with:</p>
+  <pre class="calibre4" id="PLd0e15191">&gt;&gt;&gt; conv_base.summary()
+Layer (type)                     Output Shape          Param #
+================================================================
+input_1 (InputLayer)             (None, 150, 150, 3)   0
+
+________________________________________________________________
+block1_conv1 (Convolution2D)     (None, 150, 150, 64)  1792
+________________________________________________________________
+block1_conv2 (Convolution2D)     (None, 150, 150, 64)  36928
+________________________________________________________________
+block1_pool (MaxPooling2D)       (None, 75, 75, 64)    0
+________________________________________________________________
+block2_conv1 (Convolution2D)     (None, 75, 75, 128)   73856
+________________________________________________________________
+block2_conv2 (Convolution2D)     (None, 75, 75, 128)   147584
+________________________________________________________________
+block2_pool (MaxPooling2D)       (None, 37, 37, 128)   0
+________________________________________________________________
+block3_conv1 (Convolution2D)     (None, 37, 37, 256)   295168
+________________________________________________________________
+block3_conv2 (Convolution2D)     (None, 37, 37, 256)   590080
+________________________________________________________________
+block3_conv3 (Convolution2D)     (None, 37, 37, 256)   590080
+________________________________________________________________
+block3_pool (MaxPooling2D)       (None, 18, 18, 256)   0
+________________________________________________________________
+block4_conv1 (Convolution2D)     (None, 18, 18, 512)   1180160
+________________________________________________________________
+block4_conv2 (Convolution2D)     (None, 18, 18, 512)   2359808
+________________________________________________________________
+block4_conv3 (Convolution2D)     (None, 18, 18, 512)   2359808
+________________________________________________________________
+block4_pool (MaxPooling2D)       (None, 9, 9, 512)     0
+________________________________________________________________
+block5_conv1 (Convolution2D)     (None, 9, 9, 512)     2359808
+________________________________________________________________
+block5_conv2 (Convolution2D)     (None, 9, 9, 512)     2359808
+________________________________________________________________
+block5_conv3 (Convolution2D)     (None, 9, 9, 512)     2359808
+________________________________________________________________
+block5_pool (MaxPooling2D)       (None, 4, 4, 512)     0
+================================================================
+Total params: 14,714,688
+Trainable params: 14,714,688
+Non-trainable params: 0</pre>
+
+  <p class="noind"><a id="iddle1043"></a><a id="iddle1149"></a><a id="iddle1281"></a><a id="iddle1406"></a><a id="iddle1776"></a><a id="iddle1788"></a>The final feature map has shape <kbd class="calibre24">(4, 4, 512)</kbd>. That’s the feature on top of which you’ll stick a densely connected classifier.</p>
+
+  <p class="noind">At this point, there are two ways you could proceed:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Running the convolutional base over your dataset, recording its output to a Numpy array on disk, and then using this data as input to a standalone, densely connected classifier similar to those you saw in <a href="../Text/p1.html#part01">part 1</a> of this book. This solution is fast and cheap to run, because it only requires running the convolutional base once for every input image, and the convolutional base is by far the most expensive part of the pipeline. But for the same reason, this technique won’t allow you to use data augmentation.</li>
+
+    <li class="calibre17">Extending the model you have (<kbd class="calibre24">conv_base</kbd>) by adding <kbd class="calibre24">Dense</kbd> layers on top, and running the whole thing end to end on the input data. This will allow you to use data augmentation, because every input image goes through the convolutional base every time it’s seen by the model. But for the same reason, this technique is far more expensive than the first.</li>
+  </ul>
+
+  <p class="noind">We’ll cover both techniques. Let’s walk through the code required to set up the first one: recording the output of <kbd class="calibre24">conv_base</kbd> on your data and using these outputs as inputs to a new model.</p>
+
+  <p class="notetitle" id="ch05lev3sec3"><a id="ch05lev3sec3__title"></a>Fast feature extraction without data augmentation</p>
+
+  <p class="noind">You’ll start by running instances of the previously introduced <kbd class="calibre24">ImageDataGenerator</kbd> to extract images as Numpy arrays as well as their labels. You’ll extract features from these images by calling the <kbd class="calibre24">predict</kbd> method of the <kbd class="calibre24">conv_base</kbd> model.</p>
+
+  <p class="notetitle" id="ch05ex17">Listing 5.17. <a id="ch05ex17__title"></a>Extracting features using the pretrained convolutional base</p>
+  <pre class="calibre4" id="PLd0e15308">import os
+import numpy as np
+from keras.preprocessing.image import ImageDataGenerator
+
+base_dir = '/Users/fchollet/Downloads/cats_and_dogs_small'
+train_dir = os.path.join(base_dir, 'train')
+validation_dir = os.path.join(base_dir, 'validation')
+test_dir = os.path.join(base_dir, 'test')
+
+datagen = ImageDataGenerator(rescale=1./255)
+batch_size = 20
+
+def extract_features(directory, sample_count):
+    features = np.zeros(shape=(sample_count, 4, 4, 512))
+    labels = np.zeros(shape=(sample_count))
+    generator = datagen.flow_from_directory(
+        directory,
+        target_size=(150, 150),
+        batch_size=batch_size,
+        class_mode='binary')
+    i = 0
+    for inputs_batch, labels_batch in generator:
+        features_batch = conv_base.predict(inputs_batch)
+        features[i * batch_size : (i + 1) * batch_size] = features_batch
+        labels[i * batch_size : (i + 1) * batch_size] = labels_batch
+        i += 1
+        if i * batch_size &gt;= sample_count:
+            break                                                           <span class="cambriamathin">❶</span>
+    return features, labels
+
+train_features, train_labels = extract_features(train_dir, 2000)
+validation_features, validation_labels = extract_features(validation_dir, 1000)
+test_features, test_labels = extract_features(test_dir, 1000)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Note that because generators yield data indefinitely in a loop, you must break after every image has been seen once.</p>
+  </div>
+
+  <p class="noind"><a id="iddle1042"></a><a id="iddle1148"></a><a id="iddle1280"></a><a id="iddle1787"></a>The extracted features are currently of shape <kbd class="calibre24">(samples, 4, 4, 512)</kbd>. You’ll feed them to a densely connected classifier, so first you must flatten them to <kbd class="calibre24">(samples, 8192)</kbd>:</p>
+  <pre class="calibre4" id="PLd0e15381">train_features = np.reshape(train_features, (2000, 4 * 4 * 512))
+validation_features = np.reshape(validation_features, (1000, 4 * 4 * 512))
+test_features = np.reshape(test_features, (1000, 4 * 4 * 512))</pre>
+
+  <p class="noind">At this point, you can define your densely connected classifier (note the use of dropout for regularization) and train it on the data and labels that you just recorded.</p>
+
+  <p class="notetitle" id="ch05ex18">Listing 5.18. <a id="ch05ex18__title"></a>Defining and training the densely connected classifier</p>
+  <pre class="calibre4" id="PLd0e15393">from keras import models
+from keras import layers
+from keras import optimizers
+
+model = models.Sequential()
+model.add(layers.Dense(256, activation='relu', input_dim=4 * 4 * 512))
+model.add(layers.Dropout(0.5))
+model.add(layers.Dense(1, activation='sigmoid'))
+
+model.compile(optimizer=optimizers.RMSprop(lr=2e-5),
+              loss='binary_crossentropy',
+              metrics=['acc'])
+
+history = model.fit(train_features, train_labels,
+                    epochs=30,
+                    batch_size=20,
+                    validation_data=(validation_features, validation_labels))</pre>
+
+  <p class="noind">Training is very fast, because you only have to deal with two <kbd class="calibre24">Dense</kbd> layers—an epoch takes less than one second even on CPU.</p>
+
+  <p class="noind">Let’s look at the loss and accuracy curves during training (see <a href="#ch05fig15">figures 5.15</a> and <a href="#ch05fig15">5.16</a>).</p>
+
+  <p class="notetitle" id="ch05fig15">Figure 5.15. <a id="ch05fig15__title"></a>Training and validation accuracy for simple feature extraction</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig15.jpg"/></p>
+
+  <p class="notetitle" id="ch05fig16">Figure 5.16. <a id="ch05fig16__title"></a>Training and validation loss for simple feature extraction</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig16.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex19">Listing 5.19. <a id="ch05ex19__title"></a>Plotting the results</p>
+  <pre class="calibre4" id="PLd0e15447">import matplotlib.pyplot as plt
+
+acc = history.history['acc']
+val_acc = history.history['val_acc']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+epochs = range(1, len(acc) + 1)
+
+plt.plot(epochs, acc, 'bo', label='Training acc')
+plt.plot(epochs, val_acc, 'b', label='Validation acc')
+plt.title('Training and validation accuracy')
+plt.legend()
+
+plt.figure()
+
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+
+plt.show()</pre>
+
+  <p class="noind"><a id="iddle1302"></a><a id="iddle1504"></a><a id="iddle1889"></a><a id="iddle1992"></a>You reach a validation accuracy of about 90%—much better than you achieved in the previous section with the small model trained from scratch. But the plots also indicate that you’re overfitting almost from the start—despite using dropout with a fairly large rate. That’s because this technique doesn’t use data augmentation, which is essential for preventing overfitting with small image datasets.</p>
+
+  <p class="notetitle" id="ch05lev3sec4"><a id="ch05lev3sec4__title"></a>Feature extraction with data augmentation</p>
+
+  <p class="noind">Now, let’s review the second technique I mentioned for doing feature extraction, which is much slower and more expensive, but which allows you to use data augmentation during training: extending the <kbd class="calibre24">conv_base</kbd> model and running it end to end on the inputs.</p>
+  <hr class="calibre25"/>
+
+  <p class="notetitle" id="ch05note02">Note</p>
+
+  <p class="noindclose">This technique is so expensive that you should only attempt it if you have access to a GPU—it’s absolutely intractable on CPU. If you can’t run your code on GPU, then the previous technique is the way to go.</p>
+  <hr class="calibre25"/>
+
+  <p class="noind">Because models behave just like layers, you can add a model (like <kbd class="calibre24">conv_base</kbd>) to a <kbd class="calibre24">Sequential</kbd> model just like you would add a layer.</p>
+
+  <p class="notetitle" id="ch05ex20">Listing 5.20. <a id="ch05ex20__title"></a>Adding a densely connected classifier on top of the convolutional base</p>
+  <pre class="calibre4" id="PLd0e15515">from keras import models
+from keras import layers
+
+model = models.Sequential()
+model.add(conv_base)
+model.add(layers.Flatten())
+model.add(layers.Dense(256, activation='relu'))
+model.add(layers.Dense(1, activation='sigmoid'))</pre>
+
+  <p class="noind">This is what the model looks like now:</p>
+  <pre class="calibre4" id="PLd0e15524">&gt;&gt;&gt; model.summary()
+Layer (type)                     Output Shape          Param #
+================================================================
+vgg16 (Model)                    (None, 4, 4, 512)     14714688
+________________________________________________________________
+flatten_1 (Flatten)              (None, 8192)          0
+________________________________________________________________
+dense_1 (Dense)                  (None, 256)           2097408
+________________________________________________________________
+dense_2 (Dense)                  (None, 1)             257
+================================================================
+Total params: 16,812,353
+Trainable params: 16,812,353
+Non-trainable params: 0</pre>
+
+  <p class="noind">As you can see, the convolutional base of VGG16 has 14,714,688 parameters, which is very large. The classifier you’re adding on top has 2 million parameters.</p>
+
+  <p class="noind">Before you compile and train the model, it’s very important to freeze the convolutional base. <i class="calibre5">Freezing</i> a layer or set of layers means preventing their weights from being updated during training. If you don’t do this, then the representations that were previously learned by the convolutional base will be modified during training. Because the <kbd class="calibre24">Dense</kbd> layers on top are randomly initialized, very large weight updates would be propagated through the network, effectively destroying the representations previously learned.</p>
+
+  <p class="noind">In Keras, you freeze a network by setting its <kbd class="calibre24">trainable</kbd> attribute to <kbd class="calibre24">False</kbd>:</p>
+  <pre class="calibre4" id="PLd0e15551">&gt;&gt;&gt; print('This is the number of trainable weights '
+         'before freezing the conv base:', len(model.trainable_weights))
+This is the number of trainable weights before freezing the conv base: 30
+&gt;&gt;&gt; conv_base.trainable = False
+&gt;&gt;&gt; print('This is the number of trainable weights '
+          'after freezing the conv base:', len(model.trainable_weights))
+This is the number of trainable weights after freezing the conv base: 4</pre>
+
+  <p class="noind"><a id="iddle1124"></a><a id="iddle1290"></a><a id="iddle1789"></a>With this setup, only the weights from the two <kbd class="calibre24">Dense</kbd> layers that you added will be trained. That’s a total of four weight tensors: two per layer (the main weight matrix and the bias vector). Note that in order for these changes to take effect, you must first compile the model. If you ever modify weight trainability after compilation, you should then recompile the model, or these changes will be ignored.</p>
+
+  <p class="noind">Now you can start training your model, with the same data-augmentation configuration that you used in the previous example.</p>
+
+  <p class="notetitle" id="ch05ex21">Listing 5.21. <a id="ch05ex21__title"></a>Training the model end to end with a frozen convolutional base</p>
+  <pre class="calibre4" id="PLd0e15595">from keras.preprocessing.image import ImageDataGenerator
+from keras import optimizers
+
+train_datagen = ImageDataGenerator(
+      rescale=1./255,
+      rotation_range=40,
+      width_shift_range=0.2,
+      height_shift_range=0.2,
+      shear_range=0.2,
+      zoom_range=0.2,
+      horizontal_flip=True,
+      fill_mode='nearest')
+
+test_datagen = ImageDataGenerator(rescale=1./255)                <span class="cambriamathin">❶</span>
+
+train_generator = train_datagen.flow_from_directory(
+        train_dir,                                               <span class="cambriamathin">❷</span>
+        target_size=(150, 150),                                  <span class="cambriamathin">❸</span>
+        batch_size=20,
+        class_mode='binary')                                     <span class="cambriamathin">❹</span>
+
+validation_generator = test_datagen.flow_from_directory(
+        validation_dir,
+        target_size=(150, 150),
+        batch_size=20,
+        class_mode='binary')
+
+model.compile(loss='binary_crossentropy',
+              optimizer=optimizers.RMSprop(lr=2e-5),
+              metrics=['acc'])
+
+history = model.fit_generator(
+      train_generator,
+      steps_per_epoch=100,
+      epochs=30,
+      validation_data=validation_generator,
+      validation_steps=50)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Note that the validation data shouldn’t be augmented!</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Target directory</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Resizes all images to 150 × 150</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Because you use binary_crossentropy loss, you need binary labels.</p>
+  </div>
+
+  <p class="noind">Let’s plot the results again (see <a href="#ch05fig17">figures 5.17</a> and <a href="#ch05fig18">5.18</a>). As you can see, you reach a validation accuracy of about 96%. This is much better than you achieved with the small convnet trained from scratch.</p>
+
+  <p class="notetitle" id="ch05fig17">Figure 5.17. <a id="ch05fig17__title"></a>Training and validation accuracy for feature extraction with data augmentation</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig17.jpg"/></p>
+
+  <p class="notetitle" id="ch05fig18">Figure 5.18. <a id="ch05fig18__title"></a>Training and validation loss for feature extraction with data augmentation</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig18.jpg"/></p>
+
+  <h3 class="head1" id="ch05lev2sec9">5.3.2. <a id="ch05lev2sec9__title"></a>Fine-tuning</h3>
+
+  <p class="noind">Another widely used technique for model reuse, complementary to feature extraction, is <i class="calibre5">fine-tuning</i> (see <a href="#ch05fig19">figure 5.19</a>). Fine-tuning consists of unfreezing a few of the top layers of a frozen model base used for feature extraction, and jointly training both the newly added part of the model (in this case, the fully connected classifier) and these top layers. This is called <i class="calibre5">fine-tuning</i> because it slightly adjusts the more abstract representations of the model being reused, in order to make them more relevant for the problem at hand.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05fig19">Figure 5.19. <a id="ch05fig19__title"></a><a id="iddle1510"></a><a id="iddle2026"></a>Fine-tuning the last convolutional block of the VGG16 network</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig19.jpg"/></p>
+
+  <p class="noind"><a id="iddle1854"></a>I stated earlier that it’s necessary to freeze the convolution base of VGG16 in order to be able to train a randomly initialized classifier on top. For the same reason, it’s only possible to fine-tune the top layers of the convolutional base once the classifier on top has already been trained. If the classifier isn’t already trained, then the error signal propagating through the network during training will be too large, and the representations previously learned by the layers being fine-tuned will be destroyed. Thus the steps for fine-tuning a network are as follow:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Add your custom network on top of an already-trained base network.</li>
+
+    <li class="calibre17">Freeze the base network.</li>
+
+    <li class="calibre17">Train the part you added.</li>
+
+    <li class="calibre17">Unfreeze some layers in the base network.</li>
+
+    <li class="calibre17">Jointly train both these layers and the part you added.</li>
+  </ol>
+
+  <p class="noind">You already completed the first three steps when doing feature extraction. Let’s proceed with step 4: you’ll unfreeze your <kbd class="calibre24">conv_base</kbd> and then freeze individual layers inside it.</p>
+
+  <p class="noind">As a reminder, this is what your convolutional base looks like:</p>
+  <pre class="calibre4" id="PLd0e15781">&gt;&gt;&gt; conv_base.summary()
+Layer (type)                     Output Shape          Param #
+================================================================
+input_1 (InputLayer)             (None, 150, 150, 3)   0
+________________________________________________________________
+block1_conv1 (Convolution2D)     (None, 150, 150, 64)  1792
+________________________________________________________________
+block1_conv2 (Convolution2D)     (None, 150, 150, 64)  36928
+________________________________________________________________
+block1_pool (MaxPooling2D)       (None, 75, 75, 64)    0
+________________________________________________________________
+block2_conv1 (Convolution2D)     (None, 75, 75, 128)   73856
+________________________________________________________________
+block2_conv2 (Convolution2D)     (None, 75, 75, 128)   147584
+________________________________________________________________
+block2_pool (MaxPooling2D)       (None, 37, 37, 128)   0
+________________________________________________________________
+block3_conv1 (Convolution2D)     (None, 37, 37, 256)   295168
+________________________________________________________________
+block3_conv2 (Convolution2D)     (None, 37, 37, 256)   590080
+________________________________________________________________
+block3_conv3 (Convolution2D)     (None, 37, 37, 256)   590080
+________________________________________________________________
+block3_pool (MaxPooling2D)       (None, 18, 18, 256)   0
+________________________________________________________________
+block4_conv1 (Convolution2D)     (None, 18, 18, 512)   1180160
+________________________________________________________________
+block4_conv2 (Convolution2D)     (None, 18, 18, 512)   2359808
+________________________________________________________________
+block4_conv3 (Convolution2D)     (None, 18, 18, 512)   2359808
+________________________________________________________________
+block4_pool (MaxPooling2D)       (None, 9, 9, 512)     0
+
+________________________________________________________________
+block5_conv1 (Convolution2D)     (None, 9, 9, 512)     2359808
+________________________________________________________________
+block5_conv2 (Convolution2D)     (None, 9, 9, 512)     2359808
+________________________________________________________________
+block5_conv3 (Convolution2D)     (None, 9, 9, 512)     2359808
+________________________________________________________________
+block5_pool (MaxPooling2D)       (None, 4, 4, 512)     0
+================================================================
+Total params: 14714688</pre>
+
+  <p class="noind"><a id="iddle1771"></a>You’ll fine-tune the last three convolutional layers, which means all layers up to <kbd class="calibre24">block4_pool</kbd> should be frozen, and the layers <kbd class="calibre24">block5_conv1</kbd>, <kbd class="calibre24">block5_conv2</kbd>, and <kbd class="calibre24">block5_conv3</kbd> should be trainable.</p>
+
+  <p class="noind">Why not fine-tune more layers? Why not fine-tune the entire convolutional base? You could. But you need to consider the following:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Earlier layers in the convolutional base encode more-generic, reusable features, whereas layers higher up encode more-specialized features. It’s more useful to fine-tune the more specialized features, because these are the ones that need to be repurposed on your new problem. There would be fast-decreasing returns in fine-tuning lower layers.</li>
+
+    <li class="calibre17">The more parameters you’re training, the more you’re at risk of overfitting. The convolutional base has 15 million parameters, so it would be risky to attempt to train it on your small dataset.</li>
+  </ul>
+
+  <p class="noind">Thus, in this situation, it’s a good strategy to fine-tune only the top two or three layers in the convolutional base. Let’s set this up, starting from where you left off in the previous example.</p>
+
+  <p class="notetitle" id="ch05ex22">Listing 5.22. <a id="ch05ex22__title"></a>Freezing all layers up to a specific one</p>
+  <pre class="calibre4" id="PLd0e15831">conv_base.trainable = True
+
+set_trainable = False
+for layer in conv_base.layers:
+    if layer.name == 'block5_conv1':
+        set_trainable = True
+    if set_trainable:
+        layer.trainable = True
+    else:
+        layer.trainable = False</pre>
+
+  <p class="noind">Now you can begin fine-tuning the network. You’ll do this with the RMSProp optimizer, using a very low learning rate. The reason for using a low learning rate is that you want to limit the magnitude of the modifications you make to the representations of the three layers you’re fine-tuning. Updates that are too large may harm these representations.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05ex23">Listing 5.23. <a id="ch05ex23__title"></a>Fine-tuning the model</p>
+  <pre class="calibre4" id="PLd0e15845">model.compile(loss='binary_crossentropy',
+              optimizer=optimizers.RMSprop(lr=1e-5),
+              metrics=['acc'])
+
+history = model.fit_generator(
+      train_generator,
+      steps_per_epoch=100,
+      epochs=100,
+      validation_data=validation_generator,
+      validation_steps=50)</pre>
+
+  <p class="noind">Let’s plot the results using the same plotting code as before (see <a href="#ch05fig20">figures 5.20</a> and <a href="#ch05fig21">5.21</a>).</p>
+
+  <p class="notetitle" id="ch05fig20">Figure 5.20. <a id="ch05fig20__title"></a>Training and validation accuracy for fine-tuning</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig20.jpg"/></p>
+
+  <p class="notetitle" id="ch05fig21">Figure 5.21. <a id="ch05fig21__title"></a>Training and validation loss for fine-tuning</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig21.jpg"/></p>
+
+  <p class="noind">These curves look noisy. To make them more readable, you can smooth them by replacing every loss and accuracy with exponential moving averages of these quantities. Here’s a trivial utility function to do this (see <a href="#ch05fig22">figures 5.22</a> and <a href="#ch05fig23">5.23</a>).</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05fig22">Figure 5.22. <a id="ch05fig22__title"></a>Smoothed curves for training and validation accuracy for fine-tuning</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig22.jpg"/></p>
+
+  <p class="notetitle" id="ch05fig23">Figure 5.23. <a id="ch05fig23__title"></a>Smoothed curves for training and validation loss for fine-tuning</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig23.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex24">Listing 5.24. <a id="ch05ex24__title"></a>Smoothing the plots</p>
+  <pre class="calibre4" id="PLd0e15928">def smooth_curve(points, factor=0.8):
+  smoothed_points = []
+  for point in points:
+    if smoothed_points:
+      previous = smoothed_points[-1]
+      smoothed_points.append(previous * factor + point * (1 - factor))
+    else:
+      smoothed_points.append(point)
+  return smoothed_points
+
+plt.plot(epochs,
+         smooth_curve(acc), 'bo', label='Smoothed training acc')
+plt.plot(epochs,
+         smooth_curve(val_acc), 'b', label='Smoothed validation acc')
+plt.title('Training and validation accuracy')
+plt.legend()
+
+plt.figure()
+
+plt.plot(epochs,
+         smooth_curve(loss), 'bo', label='Smoothed training loss')
+plt.plot(epochs,
+         smooth_curve(val_loss), 'b', label='Smoothed validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+
+plt.show()</pre>
+
+  <p class="noind"><a id="iddle1790"></a>The validation accuracy curve look much cleaner. You’re seeing a nice 1% absolute improvement in accuracy, from about 96% to above 97%.</p>
+
+  <p class="noind">Note that the loss curve doesn’t show any real improvement (in fact, it’s deteriorating). You may wonder, how could accuracy stay stable or improve if the loss isn’t decreasing? The answer is simple: what you display is an average of pointwise loss values; but what matters for accuracy is the distribution of the loss values, not their average, because accuracy is the result of a binary thresholding of the class probability predicted by the model. The model may still be improving even if this isn’t reflected in the average loss.</p>
+
+  <p class="noind">You can now finally evaluate this model on the test data:</p>
+  <pre class="calibre4" id="PLd0e15952">test_generator = test_datagen.flow_from_directory(
+        test_dir,
+        target_size=(150, 150),
+        batch_size=20,
+        class_mode='binary')
+
+test_loss, test_acc = model.evaluate_generator(test_generator, steps=50)
+print('test acc:', test_acc)</pre>
+
+  <p class="noind">Here you get a test accuracy of 97%. In the original Kaggle competition around this dataset, this would have been one of the top results. But using modern deep-learning techniques, you managed to reach this result using only a small fraction of the training data available (about 10%). There is a huge difference between being able to train on 20,000 samples compared to 2,000 samples!</p>
+
+  <h3 class="head1" id="ch05lev2sec10">5.3.3. <a id="ch05lev2sec10__title"></a>Wrapping up</h3>
+
+  <p class="noind"><a id="iddle1009"></a><a id="iddle1073"></a><a id="iddle1125"></a><a id="iddle1128"></a><a id="iddle1129"></a><a id="iddle1375"></a><a id="iddle1441"></a><a id="iddle2058"></a><a id="iddle2060"></a><a id="iddle2062"></a>Here’s what you should take away from the exercises in the past two sections:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Convnets are the best type of machine-learning models for computer-vision tasks. It’s possible to train one from scratch even on a very small dataset, with decent results.</li>
+
+    <li class="calibre17">On a small dataset, overfitting will be the main issue. Data augmentation is a powerful way to fight overfitting when you’re working with image data.</li>
+
+    <li class="calibre17">It’s easy to reuse an existing convnet on a new dataset via feature extraction. This is a valuable technique for working with small image datasets.</li>
+
+    <li class="calibre17">As a complement to feature extraction, you can use fine-tuning, which adapts to a new problem some of the representations previously learned by an existing model. This pushes performance a bit further.</li>
+  </ul>
+
+  <p class="noind">Now you have a solid set of tools for dealing with image-classification problems—in particular with small datasets.</p>
+
+  <h2 class="head" id="ch05lev1sec4"><a class="calibre3" id="ch05lev1sec4__title"></a>5.4. Visualizing what convnets learn</h2>
+
+  <p class="noind">It’s often said that deep-learning models are “black boxes”: learning representations that are difficult to extract and present in a human-readable form. Although this is partially true for certain types of deep-learning models, it’s definitely not true for convnets. The representations learned by convnets are highly amenable to visualization, in large part because they’re <i class="calibre5">representations of visual concepts</i>. Since 2013, a wide array of techniques have been developed for visualizing and interpreting these representations. We won’t survey all of them, but we’ll cover three of the most accessible and useful ones:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><b class="calibre22">Visualizing intermediate convnet outputs (intermediate activations)—</b> Useful for understanding how successive convnet layers transform their input, and for getting a first idea of the meaning of individual convnet filters.</li>
+
+    <li class="calibre17"><b class="calibre22">Visualizing convnets filters—</b> Useful for understanding precisely what visual pattern or concept each filter in a convnet is receptive to.</li>
+
+    <li class="calibre17"><b class="calibre22">Visualizing heatmaps of class activation in an image—</b> Useful for understanding which parts of an image were identified as belonging to a given class, thus allowing you to localize objects in images.</li>
+  </ul>
+
+  <p class="noind">For the first method—activation visualization—you’ll use the small convnet that you trained from scratch on the dogs-versus-cats classification problem in <a href="#ch05lev1sec2">section 5.2</a>. For the next two methods, you’ll use the VGG16 model introduced in <a href="#ch05lev1sec3">section 5.3</a>.</p>
+
+  <h3 class="head1" id="ch05lev2sec11">5.4.1. <a id="ch05lev2sec11__title"></a>Visualizing intermediate activations</h3>
+
+  <p class="noind">Visualizing intermediate activations consists of displaying the feature maps that are output by various convolution and pooling layers in a network, given a certain input (the output of a layer is often called its <i class="calibre5">activation</i>, the output of the activation function). This gives a view into how an input is decomposed into the different filters learned by the network. You want to visualize feature maps with three dimensions: width, height, and depth (channels). Each channel encodes relatively independent features, so the proper way to visualize these feature maps is by independently plotting the contents of every channel as a 2D image. Let’s start by loading the model that you saved in <a href="#ch05lev1sec2">section 5.2</a>:</p>
+  <pre class="calibre4" id="PLd0e16134">&gt;&gt;&gt; from keras.models import load_model
+&gt;&gt;&gt; model = load_model('cats_and_dogs_small_2.h5')
+&gt;&gt;&gt; model.summary()  &lt;1&gt; As a reminder.
+________________________________________________________________
+Layer (type)                     Output Shape          Param #
+================================================================
+conv2d_5 (Conv2D)                (None, 148, 148, 32)  896
+________________________________________________________________
+maxpooling2d_5 (MaxPooling2D)    (None, 74, 74, 32)    0
+
+________________________________________________________________
+conv2d_6 (Conv2D)                (None, 72, 72, 64)    18496
+________________________________________________________________
+maxpooling2d_6 (MaxPooling2D)    (None, 36, 36, 64)    0
+________________________________________________________________
+conv2d_7 (Conv2D)                (None, 34, 34, 128)   73856
+________________________________________________________________
+maxpooling2d_7 (MaxPooling2D)    (None, 17, 17, 128)   0
+________________________________________________________________
+conv2d_8 (Conv2D)                (None, 15, 15, 128)   147584
+________________________________________________________________
+maxpooling2d_8 (MaxPooling2D)    (None, 7, 7, 128)     0
+________________________________________________________________
+flatten_2 (Flatten)              (None, 6272)          0
+________________________________________________________________
+dropout_1 (Dropout)              (None, 6272)          0
+________________________________________________________________
+dense_3 (Dense)                  (None, 512)           3211776
+________________________________________________________________
+dense_4 (Dense)                  (None, 1)             513
+================================================================
+Total params: 3,453,121
+Trainable params: 3,453,121
+Non-trainable params: 0</pre>
+
+  <p class="noind"><a id="iddle1611"></a>Next, you’ll get an input image—a picture of a cat, not part of the images the network was trained on.</p>
+
+  <p class="notetitle" id="ch05ex25">Listing 5.25. <a id="ch05ex25__title"></a>Preprocessing a single image</p>
+  <pre class="calibre4" id="PLd0e16153">img_path = '/Users/fchollet/Downloads/cats_and_dogs_small/test/cats/cat.1700.jpg'
+
+from keras.preprocessing import image                             <span class="cambriamathin">❶</span>
+import numpy as np
+
+img = image.load_img(img_path, target_size=(150, 150))
+img_tensor = image.img_to_array(img)
+img_tensor = np.expand_dims(img_tensor, axis=0)
+img_tensor /= 255.                                                <span class="cambriamathin">❷</span>
+print(img_tensor.shape)                                           <span class="cambriamathin">❸</span>
+</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Preprocesses the image into a 4D tensor</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Remember that the model was trained on inputs that were preprocessed this way.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Its shape is (1, 150, 150, 3)</p>
+  </div>
+
+  <p class="noind">Let’s display the picture (see <a href="#ch05fig24">figure 5.24</a>).</p>
+
+  <p class="notetitle" id="ch05fig24">Figure 5.24. <a id="ch05fig24__title"></a>The test cat picture</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig24.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex26">Listing 5.26. <a id="ch05ex26__title"></a>Displaying the test picture</p>
+  <pre class="calibre4" id="PLd0e16210">import matplotlib.pyplot as plt
+
+plt.imshow(img_tensor[0])
+plt.show()</pre>
+
+  <p class="noind">In order to extract the feature maps you want to look at, you’ll create a Keras model that takes batches of images as input, and outputs the activations of all convolution and pooling layers. To do this, you’ll use the Keras class <kbd class="calibre24">Model</kbd>. A model is instantiated using two arguments: an input tensor (or list of input tensors) and an output tensor (or list of output tensors). The resulting class is a Keras model, just like the <kbd class="calibre24">Sequential</kbd> models you’re familiar with, mapping the specified inputs to the specified outputs. What sets the <kbd class="calibre24">Model</kbd> class apart is that it allows for models with multiple outputs, unlike <kbd class="calibre24">Sequential</kbd>. For more information about the <kbd class="calibre24">Model</kbd> class, see <a href="../Text/07.html#ch07lev1sec1">section 7.1</a>.</p>
+
+  <p class="notetitle" id="ch05ex27">Listing 5.27. <a id="ch05ex27__title"></a>Instantiating a model from an input tensor and a list of output tensors</p>
+  <pre class="calibre4" id="PLd0e16241">from keras import models
+
+layer_outputs = [layer.output for layer in model.layers[:8]]               <span class="cambriamathin">❶</span>
+activation_model = models.Model(inputs=model.input, outputs=layer_outputs) <span class="cambriamathin">❷</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Extracts the outputs of the top eight layers</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Creates a model that will return these outputs, given the model input</p>
+  </div>
+
+  <p class="noind">When fed an image input, this model returns the values of the layer activations in the original model. This is the first time you’ve encountered a multi-output model in this book: until now, the models you’ve seen have had exactly one input and one output. In the general case, a model can have any number of inputs and outputs. This one has one input and eight outputs: one output per layer activation.</p>
+
+  <p class="notetitle" id="ch05ex28">Listing 5.28. <a id="ch05ex28__title"></a>Running the model in predict mode</p>
+  <pre class="calibre4" id="PLd0e16279">activations = activation_model.predict(img_tensor)        <span class="cambriamathin">❶</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Returns a list of five Numpy arrays: one array per layer activation</p>
+  </div>
+
+  <p class="noind">For instance, this is the activation of the first convolution layer for the cat image input:</p>
+  <pre class="calibre4" id="PLd0e16303">&gt;&gt;&gt; first_layer_activation = activations[0]
+&gt;&gt;&gt; print(first_layer_activation.shape)
+(1, 148, 148, 32)</pre>
+
+  <p class="noind">It’s a 148 × 148 feature map with 32 channels. Let’s try plotting the fourth channel of the activation of the first layer of the original model (see <a href="#ch05fig25">figure 5.25</a>).</p>
+
+  <p class="notetitle" id="ch05fig25">Figure 5.25. <a id="ch05fig25__title"></a>Fourth channel of the activation of the first layer on the test cat picture</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig25.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex29">Listing 5.29. <a id="ch05ex29__title"></a>Visualizing the fourth channel</p>
+  <pre class="calibre4" id="PLd0e16331">import matplotlib.pyplot as plt
+
+plt.matshow(first_layer_activation[0, :, :, 4], cmap='viridis')</pre>
+
+  <p class="noind">This channel appears to encode a diagonal edge detector. Let’s try the seventh channel (see <a href="#ch05fig26">figure 5.26</a>)—but note that your own channels may vary, because the specific filters learned by convolution layers aren’t deterministic.</p>
+
+  <p class="notetitle" id="ch05fig26">Figure 5.26. <a id="ch05fig26__title"></a>Seventh channel of the activation of the first layer on the test cat picture</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig26.jpg"/></p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05ex30">Listing 5.30. <a id="ch05ex30__title"></a>Visualizing the seventh channel</p>
+  <pre class="calibre4" id="PLd0e16361">plt.matshow(first_layer_activation[0, :, :, 7], cmap='viridis')</pre>
+
+  <p class="noind">This one looks like a “bright green dot” detector, useful to encode cat eyes. At this point, let’s plot a complete visualization of all the activations in the network (see <a href="#ch05fig27">figure 5.27</a>). You’ll extract and plot every channel in each of the eight activation maps, and you’ll stack the results in one big image tensor, with channels stacked side by side.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05fig27">Figure 5.27. <a id="ch05fig27__title"></a><a id="iddle1423"></a>Every channel of every layer activation on the test cat picture</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig27_alt.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex31">Listing 5.31. <a id="ch05ex31__title"></a>Visualizing every channel in every intermediate activation</p>
+  <pre class="calibre4" id="PLd0e16394">layer_names = []                                                          <span class="cambriamathin">❶</span>
+for layer in model.layers[:8]:                                            <span class="cambriamathin">❶</span>
+    layer_names.append(layer.name)                                        <span class="cambriamathin">❶</span>
+
+images_per_row = 16
+
+for layer_name, layer_activation in zip(layer_names, activations):        <span class="cambriamathin">❷</span>
+    n_features = layer_activation.shape[-1]                               <span class="cambriamathin">❸</span>
+
+    size = layer_activation.shape[1]                                      <span class="cambriamathin">❹</span>
+
+    n_cols = n_features // images_per_row                                 <span class="cambriamathin">❺</span>
+    display_grid = np.zeros((size * n_cols, images_per_row * size))
+
+    for col in range(n_cols):                                             <span class="cambriamathin">❻</span>
+        for row in range(images_per_row):
+            channel_image = layer_activation[0,
+                                             :, :,
+                                             col * images_per_row + row]
+            channel_image -= channel_image.mean()                         <span class="cambriamathin">❼</span>
+            channel_image /= channel_image.std()
+            channel_image *= 64
+            channel_image += 128
+            channel_image = np.clip(channel_image, 0, 255).astype('uint8')
+            display_grid[col * size : (col + 1) * size,                   <span class="cambriamathin">❽</span>
+                         row * size : (row + 1) * size] = channel_image
+
+    scale = 1. / size
+    plt.figure(figsize=(scale * display_grid.shape[1],
+                        scale * display_grid.shape[0]))
+    plt.title(layer_name)
+    plt.grid(False)
+    plt.imshow(display_grid, aspect='auto', cmap='viridis')</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Names of the layers, so you can have them as part of your plot</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Displays the feature maps</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Number of features in the feature map</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> The feature map has shape (1, size, size, n_features).</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Tiles the activation channels in this matrix</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Tiles each filter into a big horizontal grid</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❼</span> Post-processes the feature to make it visually palatable</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❽</span> Displays the grid</p>
+  </div>
+
+  <p class="noind"><a id="iddle1126"></a><a id="iddle1289"></a><a id="iddle1353"></a><a id="iddle2059"></a>There are a few things to note here:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">The first layer acts as a collection of various edge detectors. At that stage, the activations retain almost all of the information present in the initial picture.</li>
+
+    <li class="calibre17">As you go higher, the activations become increasingly abstract and less visually interpretable. They begin to encode higher-level concepts such as “cat ear” and “cat eye.” Higher presentations carry increasingly less information about the visual contents of the image, and increasingly more information related to the class of the image.</li>
+
+    <li class="calibre17">The sparsity of the activations increases with the depth of the layer: in the first layer, all filters are activated by the input image; but in the following layers, more and more filters are blank. This means the pattern encoded by the filter isn’t found in the input image.</li>
+  </ul>
+
+  <p class="noind">We have just evidenced an important universal characteristic of the representations learned by deep neural networks: the features extracted by a layer become increasingly abstract with the depth of the layer. The activations of higher layers carry less and less information about the specific input being seen, and more and more information about the target (in this case, the class of the image: cat or dog). A deep neural network effectively acts as an <i class="calibre5">information distillation pipeline</i>, with raw data going in (in this case, RGB pictures) and being repeatedly transformed so that irrelevant information is filtered out (for example, the specific visual appearance of the image), and useful information is magnified and refined (for example, the class of the image).</p>
+
+  <p class="noind">This is analogous to the way humans and animals perceive the world: after observing a scene for a few seconds, a human can remember which abstract objects were present in it (bicycle, tree) but can’t remember the specific appearance of these objects. In fact, if you tried to draw a generic bicycle from memory, chances are you couldn’t get it even remotely right, even though you’ve seen thousands of bicycles in your lifetime (see, for example, <a href="#ch05fig28">figure 5.28</a>). Try it right now: this effect is absolutely real. You brain has learned to completely abstract its visual input—to transform it into high-level visual concepts while filtering out irrelevant visual details—making it tremendously difficult to remember how things around you look.</p>
+
+  <p class="notetitle" id="ch05fig28">Figure 5.28. <a id="ch05fig28__title"></a>Left: attempts to draw a bicycle from memory. Right: what a schematic bicycle should look like.</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig28.jpg"/></p>
+
+  <h3 class="head1" id="ch05lev2sec12">5.4.2. <a id="ch05lev2sec12__title"></a>Visualizing convnet filters</h3>
+
+  <p class="noind">Another easy way to inspect the filters learned by convnets is to display the visual pattern that each filter is meant to respond to. This can be done with <i class="calibre5">gradient ascent in input space</i>: applying <i class="calibre5">gradient descent</i> to the value of the input image of a convnet so as to <i class="calibre5">maximize</i> the response of a specific filter, starting from a blank input image. The resulting input image will be one that the chosen filter is maximally responsive to.</p>
+
+  <p class="noind">The process is simple: you’ll build a loss function that maximizes the value of a given filter in a given convolution layer, and then you’ll use stochastic gradient descent to adjust the values of the input image so as to maximize this activation value. For instance, here’s a loss for the activation of filter 0 in the layer <kbd class="calibre24">block3_conv1</kbd> of the VGG16 network, pretrained on ImageNet.</p>
+
+  <p class="notetitle" id="ch05ex32">Listing 5.32. <a id="ch05ex32__title"></a>Defining the loss tensor for filter visualization</p>
+  <pre class="calibre4" id="PLd0e16615">from keras.applications import VGG16
+from keras import backend as K
+
+model = VGG16(weights='imagenet',
+              include_top=False)
+
+layer_name = 'block3_conv1'
+filter_index = 0
+
+layer_output = model.get_layer(layer_name).output
+loss = K.mean(layer_output[:, :, :, filter_index])</pre>
+
+  <p class="noind">To implement gradient descent, you’ll need the gradient of this loss with respect to the model’s input. To do this, you’ll use the <kbd class="calibre24">gradients</kbd> function packaged with the <kbd class="calibre24">backend</kbd> module of Keras.</p>
+
+  <p class="notetitle" id="ch05ex33">Listing 5.33. <a id="ch05ex33__title"></a>Obtaining the gradient of the loss with regard to the input</p>
+  <pre class="calibre4" id="PLd0e16633">grads = K.gradients(loss, model.input)[0]          <span class="cambriamathin">❶</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> The call to gradients returns a list of tensors (of size 1 in this case). Hence, you keep only the first element—which is a tensor.</p>
+  </div>
+
+  <p class="noind">A non-obvious trick to use to help the gradient-descent process go smoothly is to normalize the gradient tensor by dividing it by its L2 norm (the square root of the average of the square of the values in the tensor). This ensures that the magnitude of the updates done to the input image is always within the same range.</p>
+
+  <p class="notetitle" id="ch05ex34">Listing 5.34. <a id="ch05ex34__title"></a>Gradient-normalization trick</p>
+  <pre class="calibre4" id="PLd0e16659">grads /= (K.sqrt(K.mean(K.square(grads))) + 1e-5)         <span class="cambriamathin">❶</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Add 1e–5 before dividing to avoid accidentally dividing by 0.</p>
+  </div>
+
+  <p class="noind">Now you need a way to compute the value of the loss tensor and the gradient tensor, given an input image. You can define a Keras backend function to do this: <kbd class="calibre24">iterate</kbd> is a function that takes a Numpy tensor (as a list of tensors of size 1) and returns a list of two Numpy tensors: the loss value and the gradient value.</p>
+
+  <p class="notetitle" id="ch05ex35">Listing 5.35. <a id="ch05ex35__title"></a>Fetching Numpy output values given Numpy input values</p>
+  <pre class="calibre4" id="PLd0e16689">iterate = K.function([model.input], [loss, grads])
+
+import numpy as np
+loss_value, grads_value = iterate([np.zeros((1, 150, 150, 3))])</pre>
+
+  <p class="noind">At this point, you can define a Python loop to do stochastic gradient descent.</p>
+
+  <p class="notetitle" id="ch05ex36">Listing 5.36. <a id="ch05ex36__title"></a>Loss maximization via stochastic gradient descent</p>
+  <pre class="calibre4" id="PLd0e16701">input_img_data = np.random.random((1, 150, 150, 3)) * 20 + 128.      <span class="cambriamathin">❶</span>
+
+step = 1.                                                           <span class="cambriamathin">❷</span><span class="cambriamathin">❸</span>
+for i in range(40):                                                  <span class="cambriamathin">❸</span>
+    loss_value, grads_value = iterate([input_img_data])             <span class="cambriamathin">❹</span><span class="cambriamathin">❸</span>
+
+    input_img_data += grads_value * step                            <span class="cambriamathin">❺</span><span class="cambriamathin">❸</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Starts from a gray image with some noise</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Magnitude of each gradient update</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Runs gradient ascent for 40 steps</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Computes the loss value and gradient value</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Adjusts the input image in the direction that maximizes the loss</p>
+  </div>
+
+  <p class="noind">The resulting image tensor is a floating-point tensor of shape <kbd class="calibre24">(1, 150, 150, 3)</kbd>, with values that may not be integers within [0, 255]. Hence, you need to postprocess this tensor to turn it into a displayable image. You do so with the following straightforward utility function.</p>
+
+  <p class="notetitle" id="ch05ex37">Listing 5.37. <a id="ch05ex37__title"></a>Utility function to convert a tensor into a valid image</p>
+  <pre class="calibre4" id="PLd0e16787">def deprocess_image(x):
+    x -= x.mean()                                <span class="cambriamathin">❶</span>
+    x /= (x.std() + 1e-5)                        <span class="cambriamathin">❶</span>
+    x *= 0.1                                     <span class="cambriamathin">❶</span>
+
+    x += 0.5                                     <span class="cambriamathin">❷</span>
+    x = np.clip(x, 0, 1)                         <span class="cambriamathin">❷</span>
+
+    x *= 255                                     <span class="cambriamathin">❸</span>
+    x = np.clip(x, 0, 255).astype('uint8')       <span class="cambriamathin">❸</span>
+    return x                                     <span class="cambriamathin">❸</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Normalizes the tensor: centers on 0, ensures that std is 0.1</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Clips to [0, 1]</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Converts to an RGB array</p>
+  </div>
+
+  <p class="noind">Now you have all the pieces. Let’s put them together into a Python function that takes as input a layer name and a filter index, and returns a valid image tensor representing the pattern that maximizes the activation of the specified filter.</p>
+
+  <p class="notetitle" id="ch05ex38">Listing 5.38. <a id="ch05ex38__title"></a>Function to generate filter visualizations</p>
+  <pre class="calibre4" id="PLd0e16858">def generate_pattern(layer_name, filter_index, size=150):
+    layer_output = model.get_layer(layer_name).output                     <span class="cambriamathin">❶</span>
+    loss = K.mean(layer_output[:, :, :, filter_index])                    <span class="cambriamathin">❶</span>
+
+    grads = K.gradients(loss, model.input)[0]                             <span class="cambriamathin">❷</span>
+
+    grads /= (K.sqrt(K.mean(K.square(grads))) + 1e-5)                     <span class="cambriamathin">❸</span>
+
+    iterate = K.function([model.input], [loss, grads])                    <span class="cambriamathin">❹</span>
+
+    input_img_data = np.random.random((1, size, size, 3)) * 20 + 128.     <span class="cambriamathin">❺</span>
+
+    step = 1.                                                             <span class="cambriamathin">❻</span>
+    for i in range(40):                                                   <span class="cambriamathin">❻</span>
+        loss_value, grads_value = iterate([input_img_data])               <span class="cambriamathin">❻</span>
+        input_img_data += grads_value * step                              <span class="cambriamathin">❻</span>
+
+    img = input_img_data[0]
+    return deprocess_image(img)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Builds a loss function that maximizes the activation of the nth filter of the layer under consideration</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Computes the gradient of the input picture with regard to this loss</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Normalization trick: normalizes the gradient</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Returns the loss and grads given the input picture</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Starts from a gray image with some noise</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Runs gradient ascent for 40 steps</p>
+  </div>
+
+  <p class="noind">Let’s try it (see <a href="#ch05fig29">figure 5.29</a>):</p>
+  <pre class="calibre4" id="PLd0e16961">&gt;&gt;&gt; plt.imshow(generate_pattern('block3_conv1', 0))</pre>
+
+  <p class="notetitle" id="ch05fig29">Figure 5.29. <a id="ch05fig29__title"></a>Pattern that the zeroth channel in layer <kbd class="calibre24">block3_conv1</kbd> responds to maximally</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig29.jpg"/></p>
+
+  <p class="noind">It seems that filter 0 in layer <kbd class="calibre24">block3_conv1</kbd> is responsive to a polka-dot pattern. Now the fun part: you can start visualizing every filter in every layer. For simplicity, you’ll only look at the first 64 filters in each layer, and you’ll only look at the first layer of each convolution block (<kbd class="calibre24">block1_conv1</kbd>, <kbd class="calibre24">block2_conv1</kbd>, <kbd class="calibre24">block3_conv1</kbd>, <kbd class="calibre24">block4_conv1</kbd>, <kbd class="calibre24">block5_conv1</kbd>). You’ll arrange the outputs on an 8 × 8 grid of 64 × 64 filter patterns, with some black margins between each filter pattern (see <a href="#ch05fig30">figures 5.30</a>–<a href="#ch05fig33">5.33</a>).</p>
+
+  <p class="notetitle" id="ch05fig30">Figure 5.30. <a id="ch05fig30__title"></a>Filter patterns for layer <kbd class="calibre24">block1_conv1</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig30.jpg"/></p>
+
+  <p class="notetitle" id="ch05fig31">Figure 5.31. <a id="ch05fig31__title"></a>Filter patterns for layer <kbd class="calibre24">block2_conv1</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig31.jpg"/></p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch05fig32">Figure 5.32. <a id="ch05fig32__title"></a><a id="iddle1297"></a>Filter patterns for layer <kbd class="calibre24">block3_conv1</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig32.jpg"/></p>
+
+  <p class="notetitle" id="ch05fig33">Figure 5.33. <a id="ch05fig33__title"></a>Filter patterns for layer <kbd class="calibre24">block4_conv1</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig33.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex39">Listing 5.39. <a id="ch05ex39__title"></a>Generating a grid of all filter response patterns in a layer</p>
+  <pre class="calibre4" id="PLd0e17084">layer_name = 'block1_conv1'
+size = 64
+margin = 5
+
+results = np.zeros((8 * size + 7 * margin, 8 * size + 7 * margin, 3))      <span class="cambriamathin">❶</span>
+
+for i in range(8):                                                         <span class="cambriamathin">❷</span>
+    for j in range(8):                                                     <span class="cambriamathin">❸</span>
+        filter_img = generate_pattern(layer_name, i + (j * 8), size=size)  <span class="cambriamathin">❹</span>
+
+        horizontal_start = i * size + i * margin                           <span class="cambriamathin">❺</span>
+        horizontal_end = horizontal_start + size                           <span class="cambriamathin">❺</span>
+        vertical_start = j * size + j * margin                             <span class="cambriamathin">❺</span>
+        vertical_end = vertical_start + size                               <span class="cambriamathin">❺</span>
+        results[horizontal_start: horizontal_end,                          <span class="cambriamathin">❺</span>
+                vertical_start: vertical_end, :] = filter_img              <span class="cambriamathin">❺</span>
+
+plt.figure(figsize=(20, 20))                                               <span class="cambriamathin">❻</span>
+plt.imshow(results)                                                        <span class="cambriamathin">❻</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1080"></a><a id="iddle1092"></a><a id="iddle1127"></a><a id="iddle1287"></a><a id="iddle1374"></a><a id="iddle2061"></a><span class="cambriamathin1">❶</span> Empty (black) image to store results</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Iterates over the rows of the results grid</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Iterates over the columns of the results grid</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Generates the pattern for filter i + (j * 8) in layer_name</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Puts the result in the square (i, j) of the results grid</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Displays the results grid</p>
+  </div>
+
+  <p class="noind">These filter visualizations tell you a lot about how convnet layers see the world: each layer in a convnet learns a collection of filters such that their inputs can be expressed as a combination of the filters. This is similar to how the Fourier transform decomposes signals onto a bank of cosine functions. The filters in these convnet filter banks get increasingly complex and refined as you go higher in the model:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">The filters from the first layer in the model (<kbd class="calibre24">block1_conv1</kbd>) encode simple directional edges and colors (or colored edges, in some cases).</li>
+
+    <li class="calibre17">The filters from <kbd class="calibre24">block2_conv1</kbd> encode simple textures made from combinations of edges and colors.</li>
+
+    <li class="calibre17">The filters in higher layers begin to resemble textures found in natural images: feathers, eyes, leaves, and so on.</li>
+  </ul>
+
+  <h3 class="head1" id="ch05lev2sec13">5.4.3. <a id="ch05lev2sec13__title"></a>Visualizing heatmaps of class activation</h3>
+
+  <p class="noind">I’ll introduce one more visualization technique: one that is useful for understanding which parts of a given image led a convnet to its final classification decision. This is helpful for debugging the decision process of a convnet, particularly in the case of a classification mistake. It also allows you to locate specific objects in an image.</p>
+
+  <p class="noind">This general category of techniques is called <i class="calibre5">class activation map</i> (CAM) visualization, and it consists of producing heatmaps of class activation over input images. A class activation heatmap is a 2D grid of scores associated with a specific output class, computed for every location in any input image, indicating how important each location is with respect to the class under consideration. For instance, given an image fed into a dogs-versus-cats convnet, CAM visualization allows you to generate a heatmap for the class “cat,” indicating how cat-like different parts of the image are, and also a heatmap for the class “dog,” indicating how dog-like parts of the image are.</p>
+
+  <p class="noind">The specific implementation you’ll use is the one described in “Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization.”<sup class="calibre19">[<a href="#ch05fn02" class="calibre13">2</a>]</sup> It’s very simple: it consists of taking the output feature map of a convolution layer, given an input image, and weighing every channel in that feature map by the gradient of the class with respect to the channel. Intuitively, one way to understand this trick is that you’re weighting a spatial map of “how intensely the input image activates different channels” by “how important each channel is with regard to the class,” resulting in a spatial map of “how intensely the input image activates the class.”</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch05fn02" class="calibre13">2</a></sup></p>
+
+    <div class="calibre21">
+      Ramprasaath R. Selvaraju et al., arXiv (2017), <a href="https://arxiv.org/abs/1610.02391">https://arxiv.org/abs/1610.02391</a>.
+    </div>
+  </blockquote>
+
+  <p class="noind">We’ll demonstrate this technique using the pretrained VGG16 network again.</p>
+
+  <p class="notetitle" id="ch05ex40">Listing 5.40. <a id="ch05ex40__title"></a>Loading the VGG16 network with pretrained weights</p>
+  <pre class="calibre4" id="PLd0e17291">from keras.applications.vgg16 import VGG16
+
+model = VGG16(weights='imagenet')                  <span class="cambriamathin">❶</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Note that you include the densely connected classifier on top; in all previous cases, you discarded it.</p>
+  </div>
+
+  <p class="noind">Consider the image of two African elephants shown in <a href="#ch05fig34">figure 5.34</a> (under a Creative Commons license), possibly a mother and her calf, strolling on the savanna. Let’s convert this image into something the VGG16 model can read: the model was trained on images of size 224 × 224, preprocessed according to a few rules that are packaged in the utility function <kbd class="calibre24">keras.applications.vgg16.preprocess_input</kbd>. So you need to load the image, resize it to 224 × 224, convert it to a Numpy <kbd class="calibre24">float32</kbd> tensor, and apply these preprocessing rules.</p>
+
+  <p class="notetitle" id="ch05fig34">Figure 5.34. <a id="ch05fig34__title"></a>Test picture of African elephants</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig34.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex41">Listing 5.41. <a id="ch05ex41__title"></a>Preprocessing an input image for VGG16</p>
+  <pre class="calibre4" id="PLd0e17340">from keras.preprocessing import image
+from keras.applications.vgg16 import preprocess_input, decode_predictions
+import numpy as np
+
+img_path = '/Users/fchollet/Downloads/creative_commons_elephant.jpg'     <span class="cambriamathin">❶</span>
+
+img = image.load_img(img_path, target_size=(224, 224))                   <span class="cambriamathin">❷</span>
+
+x = image.img_to_array(img)                                              <span class="cambriamathin">❸</span>
+
+x = np.expand_dims(x, axis=0)                                            <span class="cambriamathin">❹</span>
+
+x = preprocess_input(x)                                                  <span class="cambriamathin">❺</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Local path to the target image</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Python Imaging Library (PIL) image of size 224 × 224</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> float32 Numpy array of shape (224, 224, 3)</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Adds a dimension to transform the array into a batch of size (1, 224, 224, 3)</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Preprocesses the batch (this does channel-wise color normalization)</p>
+  </div>
+
+  <p class="noind">You can now run the pretrained network on the image and decode its prediction vector back to a human-readable format:</p>
+  <pre class="calibre4" id="PLd0e17412">&gt;&gt;&gt; preds = model.predict(x)
+&gt;&gt;&gt; print('Predicted:', decode_predictions(preds, top=3)[0])
+Predicted:', [(u'n02504458', u'African_elephant', 0.92546833),
+(u'n01871265', u'tusker', 0.070257246),
+(u'n02504013', u'Indian_elephant', 0.0042589349)]</pre>
+
+  <p class="noind">The top three classes predicted for this image are as follows:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">African elephant (with 92.5% probability)</li>
+
+    <li class="calibre17">Tusker (with 7% probability)</li>
+
+    <li class="calibre17">Indian elephant (with 0.4% probability)</li>
+  </ul>
+
+  <p class="noind">The network has recognized the image as containing an undetermined quantity of African elephants. The entry in the prediction vector that was maximally activated is the one corresponding to the “African elephant” class, at index 386:</p>
+  <pre class="calibre4" id="PLd0e17442">&gt;&gt;&gt; np.argmax(preds[0])
+386</pre>
+
+  <p class="noind">To visualize which parts of the image are the most African elephant–like, let’s set up the Grad-CAM process.</p>
+
+  <p class="notetitle" id="ch05ex42">Listing 5.42. <a id="ch05ex42__title"></a>Setting up the Grad-CAM algorithm</p>
+  <pre class="calibre4" id="PLd0e17454">african_e66lephant_output = model.output[:, 386]                          <span class="cambriamathin">❶</span>
+
+last_conv_layer = model.get_layer('block5_conv3')                         <span class="cambriamathin">❷</span>
+
+grads = K.gradients(african_elephant_output, last_conv_layer.output)[0]   <span class="cambriamathin">❸</span>
+
+pooled_grads = K.mean(grads, axis=(0, 1, 2))                              <span class="cambriamathin">❹</span>
+
+iterate = K.function([model.input],
+                     [pooled_grads, last_conv_layer.output[0]])           <span class="cambriamathin">❺</span>
+
+pooled_grads_value, conv_layer_output_value = iterate([x])                <span class="cambriamathin">❻</span>
+
+for i in range(512):                                                      <span class="cambriamathin">❼</span>
+    conv_layer_output_value[:, :, i] *= pooled_grads_value[i]             <span class="cambriamathin">❼</span>
+
+heatmap = np.mean(conv_layer_output_value, axis=-1)                       <span class="cambriamathin">❽</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> “African elephant” entry in the prediction vector</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Output feature map of the block5_conv3 layer, the last convolutional layer in VGG16</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Gradient of the “African elephant” class with regard to the output feature map of block5_conv3</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Vector of shape (512,), where each entry is the mean intensity of the gradient over a specific feature-map channel</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Lets you access the values of the quantities you just defined: pooled_grads and the output feature map of block5_conv3, given a sample image</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Values of these two quantities, as Numpy arrays, given the sample image of two elephants</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❼</span> Multiplies each channel in the feature-map array by “how important this channel is” with regard to the “elephant” class</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❽</span> The channel-wise mean of the resulting feature map is the heatmap of the class activation.</p>
+  </div>
+
+  <p class="noind">For visualization purposes, you’ll also normalize the heatmap between 0 and 1. The result is shown in <a href="#ch05fig35">figure 5.35</a>.</p>
+
+  <p class="notetitle" id="ch05fig35">Figure 5.35. <a id="ch05fig35__title"></a>African elephant class activation heatmap over the test picture</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig35.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex43">Listing 5.43. <a id="ch05ex43__title"></a>Heatmap post-processing</p>
+  <pre class="calibre4" id="PLd0e17585">heatmap = np.maximum(heatmap, 0)
+heatmap /= np.max(heatmap)
+plt.matshow(heatmap)</pre>
+
+  <p class="noind">Finally, you’ll use OpenCV to generate an image that superimposes the original image on the heatmap you just obtained (see <a href="#ch05fig36">figure 5.36</a>).</p>
+
+  <p class="notetitle" id="ch05fig36">Figure 5.36. <a id="ch05fig36__title"></a>Superimposing the class activation heatmap on the original picture</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/05fig36.jpg"/></p>
+
+  <p class="notetitle" id="ch05ex44">Listing 5.44. <a id="ch05ex44__title"></a>Superimposing the heatmap with the original picture</p>
+  <pre class="calibre4" id="PLd0e17615">import cv2
+
+img = cv2.imread(img_path)                                                 <span class="cambriamathin">❶</span>
+
+heatmap = cv2.resize(heatmap, (img.shape[1], img.shape[0]))                <span class="cambriamathin">❷</span>
+
+heatmap = np.uint8(255 * heatmap)                                          <span class="cambriamathin">❸</span>
+
+heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)                     <span class="cambriamathin">❹</span>
+
+superimposed_img = heatmap * 0.4 + img                                     <span class="cambriamathin">❺</span>
+
+cv2.imwrite('/Users/fchollet/Downloads/elephant_cam.jpg', superimposed_img)<span class="cambriamathin">❻</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Uses cv2 to load the original image</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Resizes the heatmap to be the same size as the original image</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Converts the heatmap to RGB</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Applies the heatmap to the original image</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> 0.4 here is a heatmap intensity factor.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Saves the image to disk</p>
+  </div>
+
+  <p class="noind">This visualization technique answers two important questions:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Why did the network think this image contained an African elephant?</li>
+
+    <li class="calibre17">Where is the African elephant located in the picture?</li>
+  </ul>
+
+  <p class="noind">In particular, it’s interesting to note that the ears of the elephant calf are strongly activated: this is probably how the network can tell the difference between African and Indian elephants.</p>
+
+  <p class="noind"></p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch05sb02">Chapter summary</b>
+
+    <ul class="calibre16">
+      <li class="calibre17">Convnets are the best tool for attacking visual-classification problems.</li>
+
+      <li class="calibre17">Convnets work by learning a hierarchy of modular patterns and concepts to represent the visual world.</li>
+
+      <li class="calibre17">The representations they learn are easy to inspect—convnets are the opposite of black boxes!</li>
+
+      <li class="calibre17">You’re now capable of training your own convnet from scratch to solve an image-classification problem.</li>
+
+      <li class="calibre17">You understand how to use visual data augmentation to fight overfitting.</li>
+
+      <li class="calibre17">You know how to use a pretrained convnet to do feature extraction and fine-tuning.</li>
+
+      <li class="calibre17">You can generate visualizations of the filters learned by your convnets, as well as heatmaps of class activity.</li>
+    </ul>
+  </div>
+  <hr class="calibre25"/>
+
+  <div class="calibre14" id="calibre_pb_24"></div>
+</body>
+</html>

@@ -1,0 +1,1156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Deep Learning with Python</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../Styles/stylesheet.css" rel="stylesheet" type="text/css"/>
+<link href="../Styles/page_styles.css" rel="stylesheet" type="text/css"/>
+</head>
+  <body class="calibre">
+  <h1 class="part" id="ch07">Chapter 7. <a class="calibre3" id="ch07__title"></a>Advanced deep-learning best practices</h1>
+
+  <p class="noind1">This chapter covers</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">The Keras functional API</li>
+
+    <li class="calibre17">Using Keras callbacks</li>
+
+    <li class="calibre17">Working with the TensorBoard visualization tool</li>
+
+    <li class="calibre17">Important best practices for developing state-of-the-art models</li>
+  </ul>
+
+  <p class="noind">This chapter explores a number of powerful tools that will bring you closer to being able to develop state-of-the-art models on difficult problems. Using the Keras functional API, you can build graph-like models, share a layer across different inputs, and use Keras models just like Python functions. Keras callbacks and the TensorBoard browser-based visualization tool let you monitor models during training. We’ll also discuss several other best practices including batch normalization, residual connections, hyperparameter optimization, and model ensembling.</p>
+
+  <h2 class="head" id="ch07lev1sec1"><a class="calibre3" id="ch07lev1sec1__title"></a>7.1. Going beyond the Sequential model: the Keras functional API</h2>
+
+  <p class="noind"><a id="iddle1022"></a><a id="iddle1304"></a><a id="iddle1458"></a><a id="iddle1656"></a><a id="iddle1890"></a>Until now, all neural networks introduced in this book have been implemented using the <kbd class="calibre24">Sequential</kbd> model. The <kbd class="calibre24">Sequential</kbd> model makes the assumption that the network has exactly one input and exactly one output, and that it consists of a linear stack of layers (see <a href="#ch07fig01">figure 7.1</a>).</p>
+
+  <p class="notetitle" id="ch07fig01">Figure 7.1. <a id="ch07fig01__title"></a>A <kbd class="calibre24">sequential</kbd> model: a linear stack of layers</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig01.jpg"/></p>
+
+  <p class="noind">This is a commonly verified assumption; the configuration is so common that we’ve been able to cover many topics and practical applications in these pages so far using only the <kbd class="calibre24">Sequential</kbd> model class. But this set of assumptions is too inflexible in a number of cases. Some networks require several independent inputs, others require multiple outputs, and some networks have internal branching between layers that makes them look like <i class="calibre5">graphs</i> of layers rather than linear stacks of layers.</p>
+
+  <p class="noind">Some tasks, for instance, require <i class="calibre5">multimodal</i> inputs: they merge data coming from different input sources, processing each type of data using different kinds of neural layers. Imagine a deep-learning model trying to predict the most likely market price of a second-hand piece of clothing, using the following inputs: user-provided metadata (such as the item’s brand, age, and so on), a user-provided text description, and a picture of the item. If you had only the metadata available, you could one-hot encode it and use a densely connected network to predict the price. If you had only the text description available, you could use an RNN or a 1D convnet. If you had only the picture, you could use a 2D convnet. But how can you use all three at the same time? A naive approach would be to train three separate models and then do a weighted average of their predictions. But this may be suboptimal, because the information extracted by the models may be redundant. A better way is to <i class="calibre5">jointly</i> learn a more accurate model of the data by using a model that can see all available input modalities simultaneously: a model with three input branches (see <a href="#ch07fig02">figure 7.2</a>).</p>
+
+  <p class="notetitle" id="ch07fig02">Figure 7.2. <a id="ch07fig02__title"></a>A multi-input model</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig02.jpg"/></p>
+
+  <p class="noind"><a id="iddle1030"></a><a id="iddle1417"></a><a id="iddle1620"></a><a id="iddle1844"></a><a id="iddle1938"></a>Similarly, some tasks need to predict multiple target attributes of input data. Given the text of a novel or short story, you might want to automatically classify it by genre (such as romance or thriller) but also predict the approximate date it was written. Of course, you could train two separate models: one for the genre and one for the date. But because these attributes aren’t statistically independent, you could build a better model by learning to jointly predict both genre and date at the same time. Such a joint model would then have two outputs, or <i class="calibre5">heads</i> (see <a href="#ch07fig03">figure 7.3</a>). Due to correlations between genre and date, knowing the date of a novel would help the model learn rich, accurate representations of the space of novel genres, and vice versa.</p>
+
+  <p class="notetitle" id="ch07fig03">Figure 7.3. <a id="ch07fig03__title"></a>A multi-output (or multihead) model</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig03.jpg"/></p>
+
+  <p class="noind">Additionally, many recently developed neural architectures require nonlinear network topology: networks structured as directed acyclic graphs. The Inception family of networks (developed by Szegedy et al. at Google),<sup class="calibre19">[<a href="#ch07fn01" class="calibre13">1</a>]</sup> for instance, relies on <i class="calibre5">Inception modules</i>, where the input is processed by several parallel convolutional branches whose outputs are then merged back into a single tensor (see <a href="#ch07fig04">figure 7.4</a>). There’s also the recent trend of adding <i class="calibre5">residual connections</i> to a model, which started with the ResNet family of networks (developed by He et al. at Microsoft).<sup class="calibre19">[<a href="#ch07fn02" class="calibre13">2</a>]</sup> A residual connection consists of reinjecting previous representations into the downstream flow of data by adding a past output tensor to a later output tensor (see <a href="#ch07fig05">figure 7.5</a>), which helps prevent information loss along the data-processing flow. There are many other examples of such graph-like networks.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch07fn01" class="calibre13">1</a></sup></p>
+
+    <div class="calibre21">
+      Christian Szegedy et al., “Going Deeper with Convolutions,” Conference on Computer Vision and Pattern Recognition (2014), <a href="https://arxiv.org/abs/1409.4842">https://arxiv.org/abs/1409.4842</a>.
+    </div>
+  </blockquote>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch07fn02" class="calibre13">2</a></sup></p>
+
+    <div class="calibre21">
+      Kaiming He et al., “Deep Residual Learning for Image Recognition,” Conference on Computer Vision and Pattern Recognition (2015), <a href="https://arxiv.org/abs/1512.03385">https://arxiv.org/abs/1512.03385</a>.
+    </div>
+  </blockquote>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch07fig04">Figure 7.4. <a id="ch07fig04__title"></a>An Inception module: a subgraph of layers with several parallel convolutional branches</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig04.jpg"/></p>
+
+  <p class="notetitle" id="ch07fig05">Figure 7.5. <a id="ch07fig05__title"></a>A residual connection: reinjection of prior information downstream via feature-map addition</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig05.jpg"/></p>
+
+  <p class="noind"><a id="iddle1461"></a>These three important use cases—multi-input models, multi-output models, and graph-like models—aren’t possible when using only the <kbd class="calibre24">Sequential</kbd> model class in Keras. But there’s another far more general and flexible way to use Keras: the <i class="calibre5">functional API</i>. This section explains in detail what it is, what it can do, and how to use it.</p>
+
+  <h3 class="head1" id="ch07lev2sec1">7.1.1. <a id="ch07lev2sec1__title"></a>Introduction to the functional API</h3>
+
+  <p class="noind">In the functional API, you directly manipulate tensors, and you use layers as <i class="calibre5">functions</i> that take tensors and return tensors (hence, the name <i class="calibre5">functional API</i>):</p>
+  <pre class="calibre4" id="PLd0e22646">from keras import Input, layers
+
+input_tensor = Input(shape=(32,))                   <span class="cambriamathin">❶</span>
+dense = layers.Dense(32, activation='relu')         <span class="cambriamathin">❷</span>
+
+output_tensor = dense(input_tensor)                 <span class="cambriamathin">❸</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1430"></a><a id="iddle1756"></a><span class="cambriamathin1">❶</span> A tensor</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> A layer is a function.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> A layer may be called on a tensor, and it returns a tensor.</p>
+  </div>
+
+  <p class="noind">Let’s start with a minimal example that shows side by side a simple <kbd class="calibre24">Sequential</kbd> model and its equivalent in the functional API:</p>
+  <pre class="calibre4" id="PLd0e22711">from keras.models import Sequential, Model
+from keras import layers
+from keras import Input
+
+seq_model = Sequential()                                               <span class="cambriamathin">❶</span>
+seq_model.add(layers.Dense(32, activation='relu', input_shape=(64,)))
+seq_model.add(layers.Dense(32, activation='relu'))
+seq_model.add(layers.Dense(10, activation='softmax'))
+
+input_tensor = Input(shape=(64,))                                      <span class="cambriamathin">❷</span>
+x = layers.Dense(32, activation='relu')(input_tensor)                  <span class="cambriamathin">❷</span>
+x = layers.Dense(32, activation='relu')(x)                             <span class="cambriamathin">❷</span>
+output_tensor = layers.Dense(10, activation='softmax')(x)              <span class="cambriamathin">❷</span>
+
+model = Model(input_tensor, output_tensor)                             <span class="cambriamathin">❸</span>
+
+model.summary()                                                        <span class="cambriamathin">❹</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Sequential model, which you already know about</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Its functional equivalent</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> The Model class turns an input tensor and output tensor into a model.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Let’s look at it!</p>
+  </div>
+
+  <p class="noind">This is what the call to <kbd class="calibre24">model.summary()</kbd> displays:</p>
+  <pre class="calibre4" id="PLd0e22785">_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input_1 (InputLayer)         (None, 64)                0
+_________________________________________________________________
+dense_1 (Dense)              (None, 32)                2080
+_________________________________________________________________
+dense_2 (Dense)              (None, 32)                1056
+_________________________________________________________________
+dense_3 (Dense)              (None, 10)                330
+=================================================================
+Total params: 3,466
+Trainable params: 3,466
+Non-trainable params: 0</pre>
+
+  <p class="noind">The only part that may seem a bit magical at this point is instantiating a <kbd class="calibre24">Model</kbd> object using only an input tensor and an output tensor. Behind the scenes, Keras retrieves every layer involved in going from <kbd class="calibre24">input_tensor</kbd> to <kbd class="calibre24">output_tensor</kbd>, bringing them <a id="iddle1308"></a><a id="iddle1467"></a><a id="iddle1634"></a><a id="iddle1652"></a><a id="iddle1810"></a>together into a graph-like data structure—a <kbd class="calibre24">Model</kbd>. Of course, the reason it works is that <kbd class="calibre24">output_tensor</kbd> was obtained by repeatedly transforming <kbd class="calibre24">input_tensor</kbd>. If you tried to build a model from inputs and outputs that weren’t related, you’d get a <kbd class="calibre24">RuntimeError</kbd>:</p>
+  <pre class="calibre4" id="PLd0e22851">&gt;&gt;&gt; unrelated_input = Input(shape=(32,))
+&gt;&gt;&gt; bad_model = model = Model(unrelated_input, output_tensor)
+RuntimeError: Graph disconnected: cannot
+obtain value for tensor
+<span class="cambriamathin">➥</span>  Tensor("input_1:0", shape=(?, 64), dtype=float32) at layer "input_1".</pre>
+
+  <p class="noind">This error tells you, in essence, that Keras couldn’t reach <kbd class="calibre24">input_1</kbd> from the provided output tensor.</p>
+
+  <p class="noind">When it comes to compiling, training, or evaluating such an instance of <kbd class="calibre24">Model</kbd>, the API is the same as that of <kbd class="calibre24">Sequential</kbd>:</p>
+  <pre class="calibre4" id="PLd0e22876">model.compile(optimizer='rmsprop', loss='categorical_crossentropy')      <span class="cambriamathin">❶</span>
+import numpy as np                                                       <span class="cambriamathin">❷</span>
+x_train = np.random.random((1000, 64))
+y_train = np.random.random((1000, 10))
+
+model.fit(x_train, y_train, epochs=10, batch_size=128)                   <span class="cambriamathin">❸</span>
+
+score = model.evaluate(x_train, y_train)                                 <span class="cambriamathin">❹</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Compiles the model</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Generates dummy Numpy data to train on</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Trains the model for 10 epochs</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Evaluates the model</p>
+  </div>
+
+  <h3 class="head1" id="ch07lev2sec2">7.1.2. <a id="ch07lev2sec2__title"></a>Multi-input models</h3>
+
+  <p class="noind">The functional API can be used to build models that have multiple inputs. Typically, such models at some point merge their different input branches using a layer that can combine several tensors: by adding them, concatenating them, and so on. This is usually done via a Keras merge operation such as <kbd class="calibre24">keras.layers.add</kbd>, <kbd class="calibre24">keras.layers.concatenate</kbd>, and so on. Let’s look at a very simple example of a multi-input model: a question-answering model.</p>
+
+  <p class="noind">A typical question-answering model has two inputs: a natural-language question and a text snippet (such as a news article) providing information to be used for answering the question. The model must then produce an answer: in the simplest possible setup, this is a one-word answer obtained via a softmax over some predefined vocabulary (see <a href="#ch07fig06">figure 7.6</a>).</p>
+
+  <p class="notetitle" id="ch07fig06">Figure 7.6. <a id="ch07fig06__title"></a>A question-answering model</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig06.jpg"/></p>
+
+  <p class="noind">Following is an example of how you can build such a model with the functional API. You set up two independent branches, encoding the text input and the question input as representation vectors; then, concatenate these vectors; and finally, add a softmax classifier on top of the concatenated representations.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch07ex01">Listing 7.1. <a id="ch07ex01__title"></a>Functional API implementation of a two-input question-answering model</p>
+  <pre class="calibre4" id="PLd0e22976">from keras.models import Model
+from keras import layers
+from keras import Input
+
+text_vocabulary_size = 10000
+question_vocabulary_size = 10000
+answer_vocabulary_size = 500
+
+text_input = Input(shape=(None,), dtype='int32', name='text')            <span class="cambriamathin">❶</span>
+
+embedded_text = layers.Embedding(
+    64, text_vocabulary_size)(text_input)                                <span class="cambriamathin">❷</span>
+
+encoded_text = layers.LSTM(32)(embedded_text)                            <span class="cambriamathin">❸</span>
+
+question_input = Input(shape=(None,),
+                       dtype='int32',
+                       name='question')                                  <span class="cambriamathin">❹</span>
+
+embedded_question = layers.Embedding(
+    32, question_vocabulary_size)(question_input)
+encoded_question = layers.LSTM(16)(embedded_question)
+
+concatenated = layers.concatenate([encoded_text, encoded_question],
+                                  axis=-1)                               <span class="cambriamathin">❺</span>
+
+answer = layers.Dense(answer_vocabulary_size,
+                      activation='softmax')(concatenated)                <span class="cambriamathin">❻</span>
+
+model = Model([text_input, question_input], answer)                      <span class="cambriamathin">❼</span>
+model.compile(optimizer='rmsprop',
+              loss='categorical_crossentropy',
+              metrics=['acc'])</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1309"></a><a id="iddle1468"></a><a id="iddle1635"></a><a id="iddle1657"></a><span class="cambriamathin1">❶</span> The text input is a variable-length sequence of integers. Note that you can optionally name the inputs.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Embeds the inputs into a sequence of vectors of size 64</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Encodes the vectors in a single vector via an LSTM</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Same process (with different layer instances) for the question</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Concatenates the encoded question and encoded text</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Adds a softmax classifier on top</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❼</span> At model instantiation, you specify the two inputs and the output.</p>
+  </div>
+
+  <p class="noind">Now, how do you train this two-input model? There are two possible APIs: you can feed the model a list of Numpy arrays as inputs, or you can feed it a dictionary that maps input names to Numpy arrays. Naturally, the latter option is available only if you give names to your inputs.</p>
+
+  <p class="notetitle" id="ch07ex02">Listing 7.2. <a id="ch07ex02__title"></a>Feeding data to a multi-input model</p>
+  <pre class="calibre4" id="PLd0e23107">import numpy as np
+
+num_samples = 1000
+max_length = 100
+
+text = np.random.randint(1, text_vocabulary_size,
+                         size=(num_samples, max_length))                   <span class="cambriamathin">❶</span>
+question = np.random.randint(1, question_vocabulary_size,
+                             size=(num_samples, max_length))
+answers = np.random.randint(0, 1,
+                            size=(num_samples, answer_vocabulary_size))    <span class="cambriamathin">❷</span>
+
+model.fit([text, question], answers, epochs=10, batch_size=128)            <span class="cambriamathin">❸</span>
+
+model.fit({'text': text, 'question': question}, answers,                   <span class="cambriamathin">❹</span>
+          epochs=10, batch_size=128)                                       <span class="cambriamathin">❹</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Generates dummy Numpy data</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Answers are one-hot encoded, not integers</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Fitting using a list of inputs</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Fitting using a dictionary of inputs (only if inputs are named)</p>
+  </div>
+
+  <h3 class="head1" id="ch07lev2sec3">7.1.3. <a id="ch07lev2sec3__title"></a>Multi-output models</h3>
+
+  <p class="noind">In the same way, you can use the functional API to build models with multiple outputs (or multiple <i class="calibre5">heads</i>). A simple example is a network that attempts to simultaneously predict different properties of the data, such as a network that takes as input a series of social media posts from a single anonymous person and tries to predict attributes of that person, such as age, gender, and income level (see <a href="#ch07fig07">figure 7.7</a>).</p>
+
+  <p class="notetitle" id="ch07fig07">Figure 7.7. <a id="ch07fig07__title"></a>A social media model with three heads</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig07.jpg"/></p>
+
+  <p class="notetitle" id="ch07ex03">Listing 7.3. <a id="ch07ex03__title"></a>Functional API implementation of a three-output model</p>
+  <pre class="calibre4" id="PLd0e23200">from keras import layers
+from keras import Input
+from keras.models import Model
+vocabulary_size = 50000
+num_income_groups = 10
+
+posts_input = Input(shape=(None,), dtype='int32', name='posts')
+embedded_posts = layers.Embedding(256, vocabulary_size)(posts_input)
+x = layers.Conv1D(128, 5, activation='relu')(embedded_posts)
+x = layers.MaxPooling1D(5)(x)
+x = layers.Conv1D(256, 5, activation='relu')(x)
+x = layers.Conv1D(256, 5, activation='relu')(x)
+x = layers.MaxPooling1D(5)(x)
+x = layers.Conv1D(256, 5, activation='relu')(x)
+x = layers.Conv1D(256, 5, activation='relu')(x)
+x = layers.GlobalMaxPooling1D()(x)
+x = layers.Dense(128, activation='relu')(x)
+
+age_prediction = layers.Dense(1, name='age')(x)               <span class="cambriamathin">❶</span>
+income_prediction = layers.Dense(num_income_groups,
+                                 activation='softmax',
+                                 name='income')(x)
+gender_prediction = layers.Dense(1, activation='sigmoid', name='gender')(x)
+
+model = Model(posts_input,
+              [age_prediction, income_prediction, gender_prediction])</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1648"></a><span class="cambriamathin1">❶</span> Note that the output layers are given names.</p>
+  </div>
+
+  <p class="noind">Importantly, training such a model requires the ability to specify different loss functions for different heads of the network: for instance, age prediction is a scalar regression task, but gender prediction is a binary classification task, requiring a different training procedure. But because gradient descent requires you to minimize a <i class="calibre5">scalar</i>, you must combine these losses into a single value in order to train the model. The simplest way to combine different losses is to sum them all. In Keras, you can use either a list or a dictionary of losses in <kbd class="calibre24">compile</kbd> to specify different objects for different outputs; the resulting loss values are summed into a global loss, which is minimized during training.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch07ex04">Listing 7.4. <a id="ch07ex04__title"></a>Compilation options of a multi-output model: multiple losses</p>
+  <pre class="calibre4" id="PLd0e23242">model.compile(optimizer='rmsprop',
+              loss=['mse', 'categorical_crossentropy', 'binary_crossentropy'])
+
+model.compile(optimizer='rmsprop',                             <span class="cambriamathin">❶</span>
+              loss={'age': 'mse',                              <span class="cambriamathin">❶</span>
+                    'income': 'categorical_crossentropy',      <span class="cambriamathin">❶</span>
+                    'gender': 'binary_crossentropy'})          <span class="cambriamathin">❶</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1242"></a><a id="iddle1243"></a><a id="iddle1305"></a><a id="iddle1362"></a><a id="iddle1418"></a><a id="iddle1459"></a><a id="iddle1501"></a><a id="iddle1502"></a><a id="iddle1641"></a><span class="cambriamathin1">❶</span> Equivalent (possible only if you give names to the output layers)</p>
+  </div>
+
+  <p class="noind">Note that very imbalanced loss contributions will cause the model representations to be optimized preferentially for the task with the largest individual loss, at the expense of the other tasks. To remedy this, you can assign different levels of importance to the loss values in their contribution to the final loss. This is useful in particular if the losses’ values use different scales. For instance, the mean squared error (MSE) loss used for the age-regression task typically takes a value around 3–5, whereas the cross-entropy loss used for the gender-classification task can be as low as 0.1. In such a situation, to balance the contribution of the different losses, you can assign a weight of 10 to the crossentropy loss and a weight of 0.25 to the MSE loss.</p>
+
+  <p class="notetitle" id="ch07ex05">Listing 7.5. <a id="ch07ex05__title"></a>Compilation options of a multi-output model: loss weighting</p>
+  <pre class="calibre4" id="PLd0e23343">model.compile(optimizer='rmsprop',
+              loss=['mse', 'categorical_crossentropy', 'binary_crossentropy'],
+              loss_weights=[0.25, 1., 10.])
+
+model.compile(optimizer='rmsprop',                            <span class="cambriamathin">❶</span>
+              loss={'age': 'mse',                             <span class="cambriamathin">❶</span>
+                    'income': 'categorical_crossentropy',     <span class="cambriamathin">❶</span>
+                    'gender': 'binary_crossentropy'},         <span class="cambriamathin">❶</span>
+              loss_weights={'age': 0.25,                      <span class="cambriamathin">❶</span>
+                            'income': 1.,                     <span class="cambriamathin">❶</span>
+                            'gender': 10.})                   <span class="cambriamathin">❶</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Equivalent (possible only if you give names to the output layers)</p>
+  </div>
+
+  <p class="noind">Much as in the case of multi-input models, you can pass Numpy data to the model for training either via a list of arrays or via a dictionary of arrays.</p>
+
+  <p class="notetitle" id="ch07ex06">Listing 7.6. <a id="ch07ex06__title"></a>Feeding data to a multi-output model</p>
+  <pre class="calibre4" id="PLd0e23393">model.fit(posts, [age_targets, income_targets, gender_targets],        <span class="cambriamathin">❶</span>
+          epochs=10, batch_size=64)
+
+model.fit(posts, {'age': age_targets,                                  <span class="cambriamathin">❷</span>
+                  'income': income_targets,                            <span class="cambriamathin">❷</span>
+                  'gender': gender_targets},                           <span class="cambriamathin">❷</span>
+          epochs=10, batch_size=64)                                    <span class="cambriamathin">❷</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1772"></a><span class="cambriamathin1">❶</span> age_targets, income_targets, and gender_targets are assumed to be Numpy arrays.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Equivalent (possible only if you give names to the output layers)</p>
+  </div>
+
+  <h3 class="head1" id="ch07lev2sec4">7.1.4. <a id="ch07lev2sec4__title"></a>Directed acyclic graphs of layers</h3>
+
+  <p class="noind">With the functional API, not only can you build models with multiple inputs and multiple outputs, but you can also implement networks with a complex internal topology. Neural networks in Keras are allowed to be arbitrary <i class="calibre5">directed acyclic graphs</i> of layers. The qualifier <i class="calibre5">acyclic</i> is important: these graphs can’t have cycles. It’s impossible for a tensor <kbd class="calibre24">x</kbd> to become the input of one of the layers that generated <kbd class="calibre24">x</kbd>. The only processing <i class="calibre5">loops</i> that are allowed (that is, recurrent connections) are those internal to recurrent layers.</p>
+
+  <p class="noind">Several common neural-network components are implemented as graphs. Two notable ones are Inception modules and residual connections. To better understand how the functional API can be used to build graphs of layers, let’s take a look at how you can implement both of them in Keras.</p>
+
+  <p class="notetitle" id="ch07lev3sec1"><a id="ch07lev3sec1__title"></a>Inception modules</p>
+
+  <p class="noind"><i class="calibre5">Inception</i><sup class="calibre19">[<a href="#ch07fn03" class="calibre13">3</a>]</sup> is a popular type of network architecture for convolutional neural networks; it was developed by Christian Szegedy and his colleagues at Google in 2013–2014, inspired by the earlier <i class="calibre5">network-in-network</i> architecture.<sup class="calibre19">[<a href="#ch07fn04" class="calibre13">4</a>]</sup> It consists of a stack of modules that themselves look like small independent networks, split into several parallel branches. The most basic form of an Inception module has three to four branches starting with a 1 × 1 convolution, followed by a 3 × 3 convolution, and ending with the concatenation of the resulting features. This setup helps the network separately learn spatial features and channel-wise features, which is more efficient than learning them jointly. More-complex versions of an Inception module are also possible, typically involving pooling operations, different spatial convolution sizes (for example, 5 × 5 instead of 3 × 3 on some branches), and branches without a spatial convolution (only a 1 × 1 convolution). An example of such a module, taken from Inception V3, is shown in <a href="#ch07fig08">figure 7.8</a>.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch07fn03" class="calibre13">3</a></sup></p>
+
+    <div class="calibre21">
+      <a href="https://arxiv.org/abs/1409.4842">https://arxiv.org/abs/1409.4842</a>.
+    </div>
+  </blockquote>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch07fn04" class="calibre13">4</a></sup></p>
+
+    <div class="calibre21">
+      Min Lin, Qiang Chen, and Shuicheng Yan, “Network in Network,” International Conference on Learning Representations (2013), <a href="https://arxiv.org/abs/1312.4400">https://arxiv.org/abs/1312.4400</a>.
+    </div>
+  </blockquote>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch07fig08">Figure 7.8. <a id="ch07fig08__title"></a>An Inception module</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig08.jpg"/></p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch07sb01">The purpose of 1 × 1 convolutions</b>
+
+    <p class="noind"><a id="iddle1031"></a><a id="iddle1104"></a><a id="iddle1244"></a><a id="iddle1272"></a><a id="iddle1503"></a><a id="iddle1621"></a><a id="iddle2104"></a>You already know that convolutions extract spatial patches around every tile in an input tensor and apply the same transformation to each patch. An edge case is when the patches extracted consist of a single tile. The convolution operation then becomes equivalent to running each tile vector through a <kbd class="calibre24">Dense</kbd> layer: it will compute features that mix together information from the channels of the input tensor, but it won’t mix information across space (because it’s looking at one tile at a time). Such 1 × 1 convolutions (also called <i class="calibre5">pointwise convolutions</i>) are featured in Inception modules, where they contribute to factoring out channel-wise feature learning and space-wise feature learning—a reasonable thing to do if you assume that each channel is highly autocorrelated across space, but different channels may not be highly correlated with each other.</p>
+  </div>
+  <hr class="calibre25"/>
+
+  <p class="noind">Here’s how you’d implement the module featured in <a href="#ch07fig08">figure 7.8</a> using the functional API. This example assumes the existence of a 4D input tensor <kbd class="calibre24">x</kbd>:</p>
+  <pre class="calibre4" id="PLd0e23591">from keras import layers
+branch_a = layers.Conv2D(128, 1,
+                         activation='relu', strides=2)(x)                  <span class="cambriamathin">❶</span>
+branch_b = layers.Conv2D(128, 1, activation='relu')(x)                     <span class="cambriamathin">❷</span>
+branch_b = layers.Conv2D(128, 3, activation='relu', strides=2)(branch_b)   <span class="cambriamathin">❷</span>
+
+branch_c = layers.AveragePooling2D(3, strides=2)(x)                        <span class="cambriamathin">❸</span>
+branch_c = layers.Conv2D(128, 3, activation='relu')(branch_c)              <span class="cambriamathin">❸</span>
+
+branch_d = layers.Conv2D(128, 1, activation='relu')(x)
+branch_d = layers.Conv2D(128, 3, activation='relu')(branch_d)
+branch_d = layers.Conv2D(128, 3, activation='relu', strides=2)(branch_d)
+output = layers.concatenate(
+    [branch_a, branch_b, branch_c, branch_d], axis=-1)                     <span class="cambriamathin">❹</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Every branch has the same stride value (2), which is necessary to keep all branch outputs the same size so you can concatenate them.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> In this branch, the striding occurs in the spatial convolution layer.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> In this branch, the striding occurs in the average pooling layer.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Concatenates the branch outputs to obtain the module output</p>
+  </div>
+
+  <p class="noind">Note that the full Inception V3 architecture is available in Keras as <kbd class="calibre24">keras.applications.inception_v3.InceptionV3</kbd>, including weights pretrained on the ImageNet dataset. Another closely related model available as part of the Keras applications module is <i class="calibre5">Xception</i>.<sup class="calibre19">[<a href="#ch07fn05" class="calibre13">5</a>]</sup> Xception, which stands for <i class="calibre5">extreme inception</i>, is a convnet architecture loosely inspired by Inception. It takes the idea of separating the learning of channel-wise and space-wise features to its logical extreme, and replaces Inception modules with depthwise separable convolutions consisting of a depthwise convolution (a spatial convolution where every input channel is handled separately) followed by a pointwise convolution (a 1 × 1 convolution)—effectively, an extreme form of an Inception module, where spatial features and channel-wise features are fully separated. Xception has roughly the same number of parameters as Inception V3, but it shows better runtime performance and higher accuracy on ImageNet as well as other large-scale datasets, due to a more efficient use of model parameters.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch07fn05" class="calibre13">5</a></sup></p>
+
+    <div class="calibre21">
+      François Chollet, “Xception: Deep Learning with Depthwise Separable Convolutions,” Conference on Computer Vision and Pattern Recognition (2017), <a href="https://arxiv.org/abs/1610.02357">https://arxiv.org/abs/1610.02357</a>.
+    </div>
+  </blockquote>
+
+  <p class="notetitle" id="ch07lev3sec2"><a id="ch07lev3sec2__title"></a>Residual connections</p>
+
+  <p class="noind"><i class="calibre5">Residual connections</i> are a common graph-like network component found in many post-2015 network architectures, including Xception. They were introduced by He et al. from Microsoft in their winning entry in the ILSVRC ImageNet challenge in late 2015.<sup class="calibre19">[<a href="#ch07fn06" class="calibre13">6</a>]</sup> They tackle two common problems that plague any large-scale deep-learning model: vanishing gradients and representational bottlenecks. In general, adding residual connections to any model that has more than 10 layers is likely to be beneficial.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch07fn06" class="calibre13">6</a></sup></p>
+
+    <div class="calibre21">
+      He et al., “Deep Residual Learning for Image Recognition,” <a href="https://arxiv.org/abs/1512.03385">https://arxiv.org/abs/1512.03385</a>.
+    </div>
+  </blockquote>
+
+  <p class="noind">A residual connection consists of making the output of an earlier layer available as input to a later layer, effectively creating a shortcut in a sequential network. Rather than being concatenated to the later activation, the earlier output is summed with the later activation, which assumes that both activations are the same size. If they’re different sizes, you can use a linear transformation to reshape the earlier activation into the target shape (for example, a <kbd class="calibre24">Dense</kbd> layer without an activation or, for convolutional feature maps, a 1 × 1 convolution without an activation).</p>
+
+  <p class="noind">Here’s how to implement a residual connection in Keras when the feature-map sizes are the same, using identity residual connections. This example assumes the existence of a 4D input tensor <kbd class="calibre24">x</kbd>:</p>
+  <pre class="calibre4" id="PLd0e23708">from keras import layers
+
+x = ...
+y = layers.Conv2D(128, 3, activation='relu', padding='same')(x)    <span class="cambriamathin">❶</span>
+y = layers.Conv2D(128, 3, activation='relu', padding='same')(y)
+y = layers.Conv2D(128, 3, activation='relu', padding='same')(y)
+
+y = layers.add([y, x])                                             <span class="cambriamathin">❷</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1055"></a><a id="iddle1306"></a><a id="iddle1465"></a><a id="iddle1511"></a><a id="iddle2066"></a><span class="cambriamathin1">❶</span> Applies a transformation to x</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Adds the original x back to the output features</p>
+  </div>
+
+  <p class="noind">And the following implements a residual connection when the feature-map sizes differ, using a linear residual connection (again, assuming the existence of a 4D input tensor <kbd class="calibre24">x</kbd>):</p>
+  <pre class="calibre4" id="PLd0e23780">from keras import layers
+
+x = ...
+y = layers.Conv2D(128, 3, activation='relu', padding='same')(x)
+y = layers.Conv2D(128, 3, activation='relu', padding='same')(y)
+y = layers.MaxPooling2D(2, strides=2)(y)
+
+residual = layers.Conv2D(128, 1, strides=2, padding='same')(x)       <span class="cambriamathin">❶</span>
+
+y = layers.add([y, residual])                                        <span class="cambriamathin">❷</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Uses a 1 × 1 convolution to linearly downsample the original x tensor to the same shape as y</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Adds the residual tensor back to the output features</p>
+  </div>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch07sb02">Representational bottlenecks in deep learning</b>
+
+    <p class="noind">In a <kbd class="calibre24">Sequential</kbd> model, each successive representation layer is built on top of the previous one, which means it only has access to information contained in the activation of the previous layer. If one layer is too small (for example, it has features that are too low-dimensional), then the model will be constrained by how much information can be crammed into the activations of this layer.</p>
+
+    <p class="noind">You can grasp this concept with a signal-processing analogy: if you have an audio-processing pipeline that consists of a series of operations, each of which takes as input the output of the previous operation, then if one operation crops your signal to a low-frequency range (for example, 0–15 kHz), the operations downstream will never be able to recover the dropped frequencies. Any loss of information is permanent. Residual connections, by reinjecting earlier information downstream, partially solve this issue for deep-learning models.</p>
+  </div>
+  <hr class="calibre25"/>
+
+  <p class="noind"></p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch07sb03">Vanishing gradients in deep learning</b>
+
+    <p class="noind"><a id="iddle1307"></a><a id="iddle1466"></a><a id="iddle1505"></a><a id="iddle1622"></a><a id="iddle1894"></a><a id="iddle1898"></a>Backpropagation, the master algorithm used to train deep neural networks, works by propagating a feedback signal from the output loss down to earlier layers. If this feedback signal has to be propagated through a deep stack of layers, the signal may become tenuous or even be lost entirely, rendering the network untrainable. This issue is known as <i class="calibre5">vanishing gradients</i>.</p>
+
+    <p class="noind">This problem occurs both with deep networks and with recurrent networks over very long sequences—in both cases, a feedback signal must be propagated through a long series of operations. You’re already familiar with the solution that the <kbd class="calibre24">LSTM</kbd> layer uses to address this problem in recurrent networks: it introduces a <i class="calibre5">carry track</i> that propagates information parallel to the main processing track. Residual connections work in a similar way in feedforward deep networks, but they’re even simpler: they introduce a purely linear information carry track parallel to the main layer stack, thus helping to propagate gradients through arbitrarily deep stacks of layers.</p>
+  </div>
+  <hr class="calibre25"/>
+
+  <h3 class="head1" id="ch07lev2sec5">7.1.5. <a id="ch07lev2sec5__title"></a>Layer weight sharing</h3>
+
+  <p class="noind">One more important feature of the functional API is the ability to reuse a layer instance several times. When you call a layer instance twice, instead of instantiating a new layer for each call, you reuse the same weights with every call. This allows you to build models that have shared branches—several branches that all share the same knowledge and perform the same operations. That is, they share the same representations and learn these representations simultaneously for different sets of inputs.</p>
+
+  <p class="noind">For example, consider a model that attempts to assess the semantic similarity between two sentences. The model has two inputs (the two sentences to compare) and outputs a score between 0 and 1, where 0 means unrelated sentences and 1 means sentences that are either identical or reformulations of each other. Such a model could be useful in many applications, including deduplicating natural-language queries in a dialog system.</p>
+
+  <p class="noind">In this setup, the two input sentences are interchangeable, because semantic similarity is a symmetrical relationship: the similarity of A to B is identical to the similarity of B to A. For this reason, it wouldn’t make sense to learn two independent models for processing each input sentence. Rather, you want to process both with a single <kbd class="calibre24">LSTM</kbd> layer. The representations of this <kbd class="calibre24">LSTM</kbd> layer (its weights) are learned based on both inputs simultaneously. This is what we call a <i class="calibre5">Siamese LSTM</i> model or a <i class="calibre5">shared LSTM</i>.</p>
+
+  <p class="noind">Here’s how to implement such a model using layer sharing (layer reuse) in the Keras functional API:</p>
+  <pre class="calibre4" id="PLd0e23923">from keras import layers
+from keras import Input
+from keras.models import Model
+
+lstm = layers.LSTM(32)                                                <span class="cambriamathin">❶</span>
+left_input = Input(shape=(None, 128))                                 <span class="cambriamathin">❷</span>
+left_output = lstm(left_input)                                        <span class="cambriamathin">❷</span>
+
+right_input = Input(shape=(None, 128))                                <span class="cambriamathin">❸</span>
+right_output = lstm(right_input)                                      <span class="cambriamathin">❸</span>
+
+merged = layers.concatenate([left_output, right_output], axis=-1)     <span class="cambriamathin">❹</span>
+predictions = layers.Dense(1, activation='sigmoid')(merged)           <span class="cambriamathin">❹</span>
+
+model = Model([left_input, right_input], predictions)                 <span class="cambriamathin">❺</span>
+model.fit([left_data, right_data], targets)                           <span class="cambriamathin">❺</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1888"></a><a id="iddle2105"></a><span class="cambriamathin1">❶</span> Instantiates a single LSTM layer, once</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Building the left branch of the model: inputs are variable-length sequences of vectors of size 128.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Building the right branch of the model: when you call an existing layer instance, you reuse its weights.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Builds the classifier on top</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Instantiating and training the model: when you train such a model, the weights of the LSTM layer are updated based on both inputs.</p>
+  </div>
+
+  <p class="noind">Naturally, a layer instance may be used more than once—it can be called arbitrarily many times, reusing the same set of weights every time.</p>
+
+  <h3 class="head1" id="ch07lev2sec6">7.1.6. <a id="ch07lev2sec6__title"></a>Models as layers</h3>
+
+  <p class="noind">Importantly, in the functional API, models can be used as you’d use layers—effectively, you can think of a model as a “bigger layer.” This is true of both the <kbd class="calibre24">Sequential</kbd> and <kbd class="calibre24">Model</kbd> classes. This means you can call a model on an input tensor and retrieve an output tensor:</p>
+  <pre class="calibre4" id="PLd0e24037">y = model(x)</pre>
+
+  <p class="noind">If the model has multiple input tensors and multiple output tensors, it should be called with a list of tensors:</p>
+  <pre class="calibre4" id="PLd0e24046">y1, y2 = model([x1, x2])</pre>
+
+  <p class="noind">When you call a model instance, you’re reusing the weights of the model—exactly like what happens when you call a layer instance. Calling an instance, whether it’s a layer instance or a model instance, will always reuse the existing learned representations of the instance—which is intuitive.</p>
+
+  <p class="noind">One simple practical example of what you can build by reusing a model instance is a vision model that uses a dual camera as its input: two parallel cameras, a few centimeters (one inch) apart. Such a model can perceive depth, which can be useful in many applications. You shouldn’t need two independent models to extract visual features from the left camera and the right camera before merging the two feeds. Such low-level processing can be shared across the two inputs: that is, done via layers that use the same weights and thus share the same representations. Here’s how you’d implement a Siamese vision model (shared convolutional base) in Keras:</p>
+  <pre class="calibre4" id="PLd0e24060">from keras import layers
+from keras import applications
+from keras import Input
+
+xception_base = applications.Xception(weights=None,
+                                      include_top=False)      <span class="cambriamathin">❶</span>
+
+left_input = Input(shape=(250, 250, 3))                       <span class="cambriamathin">❷</span>
+right_input = Input(shape=(250, 250, 3))                      <span class="cambriamathin">❷</span>
+
+left_features = xception_base(left_input)                     <span class="cambriamathin">❸</span>
+right_input = xception_base(right_input)                      <span class="cambriamathin">❸</span>
+
+merged_features = layers.concatenate(
+    [left_features, right_input], axis=-1)                    <span class="cambriamathin">❹</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1471"></a><a id="iddle1480"></a><a id="iddle1602"></a><a id="iddle1610"></a><a id="iddle1614"></a><a id="iddle1615"></a><a id="iddle1638"></a><a id="iddle1639"></a><a id="iddle1763"></a><a id="iddle1944"></a><a id="iddle1999"></a><span class="cambriamathin1">❶</span> The base image-processing model is the Xception network (convolutional base only).</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> The inputs are 250 × 250 RGB images.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Calls the same vision model twice</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> The merged features contain information from the right visual feed and the left visual feed.</p>
+  </div>
+
+  <h3 class="head1" id="ch07lev2sec7">7.1.7. <a id="ch07lev2sec7__title"></a>Wrapping up</h3>
+
+  <p class="noind">This concludes our introduction to the Keras functional API—an essential tool for building advanced deep neural network architectures. Now you know the following:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">To step out of the <kbd class="calibre24">Sequential</kbd> API whenever you need anything more than a linear stack of layers</li>
+
+    <li class="calibre17">How to build Keras models with several inputs, several outputs, and complex internal network topology, using the Keras functional API</li>
+
+    <li class="calibre17">How to reuse the weights of a layer or model across different processing branches, by calling the same layer or model instance several times</li>
+  </ul>
+
+  <h2 class="head" id="ch07lev1sec2"><a class="calibre3" id="ch07lev1sec2__title"></a>7.2. Inspecting and monitoring deep-learning models using Keras callba- acks and TensorBoard</h2>
+
+  <p class="noind"><a id="iddle1254"></a><a id="iddle1532"></a><a id="iddle1616"></a><a id="iddle1833"></a>In this section, we’ll review ways to gain greater access to and control over what goes on inside your model during training. Launching a training run on a large dataset for tens of epochs using <kbd class="calibre24">model.fit()</kbd> or <kbd class="calibre24">model.fit_generator()</kbd> can be a bit like launching a paper airplane: past the initial impulse, you don’t have any control over its trajectory or its landing spot. If you want to avoid bad outcomes (and thus wasted paper airplanes), it’s smarter to use not a paper plane, but a drone that can sense its environment, send data back to its operator, and automatically make steering decisions based on its current state. The techniques we present here will transform the call to <kbd class="calibre24">model.fit()</kbd> from a paper airplane into a smart, autonomous drone that can self-introspect and dynamically take action.</p>
+
+  <h3 class="head1" id="ch07lev2sec8">7.2.1. <a id="ch07lev2sec8__title"></a>Using callbacks to act on a model during training</h3>
+
+  <p class="noind">When you’re training a model, there are many things you can’t predict from the start. In particular, you can’t tell how many epochs will be needed to get to an optimal validation loss. The examples so far have adopted the strategy of training for enough epochs that you begin overfitting, using the first run to figure out the proper number of epochs to train for, and then finally launching a new training run from scratch using this optimal number. Of course, this approach is wasteful.</p>
+
+  <p class="noind">A much better way to handle this is to stop training when you measure that the validation loss is no longer improving. This can be achieved using a Keras callback. A <i class="calibre5">callback</i> is an object (a class instance implementing specific methods) that is passed to the model in the call to <kbd class="calibre24">fit</kbd> and that is called by the model at various points during training. It has access to all the available data about the state of the model and its performance, and it can take action: interrupt training, save a model, load a different weight set, or otherwise alter the state of the model.</p>
+
+  <p class="noind">Here are some examples of ways you can use callbacks:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><b class="calibre22">Model checkpointing—</b> Saving the current weights of the model at different points during training.</li>
+
+    <li class="calibre17"><b class="calibre22">Early stopping—</b> Interrupting training when the validation loss is no longer improving (and of course, saving the best model obtained during training).</li>
+
+    <li class="calibre17"><b class="calibre22">Dynamically adjusting the value of certain parameters during training—</b> Such as the learning rate of the optimizer.</li>
+
+    <li class="calibre17"><b class="calibre22">Logging training and validation metrics during training, or visualizing the representations learned by the model as they’re updated—</b> The Keras progress bar that you’re familiar with is a callback!</li>
+  </ul>
+
+  <p class="noind">The <kbd class="calibre24">keras.callbacks</kbd> module includes a number of built-in callbacks (this is not an exhaustive list):</p>
+  <pre class="calibre4" id="PLd0e24330">keras.callbacks.ModelCheckpoint
+keras.callbacks.EarlyStopping
+keras.callbacks.LearningRateScheduler
+keras.callbacks.ReduceLROnPlateau
+keras.callbacks.CSVLogger</pre>
+
+  <p class="noind"><a id="iddle1079"></a><a id="iddle1481"></a><a id="iddle1524"></a><a id="iddle2103"></a>Let’s review a few of them to give you an idea of how to use them: <kbd class="calibre24">ModelCheckpoint</kbd>, <kbd class="calibre24">EarlyStopping</kbd>, and <kbd class="calibre24">ReduceLROnPlateau</kbd>.</p>
+
+  <p class="notetitle" id="ch07lev3sec3"><a id="ch07lev3sec3__title"></a>The ModelCheckpoint and EarlyStopping callbacks</p>
+
+  <p class="noind">You can use the <kbd class="calibre24">EarlyStopping</kbd> callback to interrupt training once a target metric being monitored has stopped improving for a fixed number of epochs. For instance, this callback allows you to interrupt training as soon as you start overfitting, thus avoiding having to retrain your model for a smaller number of epochs. This callback is typically used in combination with <kbd class="calibre24">ModelCheckpoint</kbd>, which lets you continually save the model during training (and, optionally, save only the current best model so far: the version of the model that achieved the best performance at the end of an epoch):</p>
+  <pre class="calibre4" id="PLd0e24384">import keras
+
+callbacks_list = [                              <span class="cambriamathin">❶</span>
+    keras.callbacks.EarlyStopping(              <span class="cambriamathin">❷</span>
+        monitor='acc',                          <span class="cambriamathin">❸</span>
+        patience=1,                             <span class="cambriamathin">❹</span>
+    ),
+    keras.callbacks.ModelCheckpoint(            <span class="cambriamathin">❺</span>
+        filepath='my_model.h5',                 <span class="cambriamathin">❻</span>
+        monitor='val_loss',                     <span class="cambriamathin">❼</span>
+        save_best_only=True,                    <span class="cambriamathin">❼</span>
+    )
+]
+
+model.compile(optimizer='rmsprop',
+              loss='binary_crossentropy',
+              metrics=['acc'])                  <span class="cambriamathin">❽</span>
+
+model.fit(x, y,                                 <span class="cambriamathin">❾</span>
+          epochs=10,                            <span class="cambriamathin">❾</span>
+          batch_size=32,                        <span class="cambriamathin">❾</span>
+          callbacks=callbacks_list,             <span class="cambriamathin">❾</span>
+          validation_data=(x_val, y_val))       <span class="cambriamathin">❾</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Callbacks are passed to the model via the callbacks argument in fit, which takes a list of callbacks. You can pass any number of callbacks.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Interrupts training when improvement stops</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Monitors the model’s validation accuracy</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Interrupts training when accuracy has stopped improving for more than one epoch (that is, two epochs)</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Saves the current weights after every epoch</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Path to the destination model file</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❼</span> These two arguments mean you won’t overwrite the model file unless val_loss has improved, which allows you to keep the best model seen during training.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❽</span> You monitor accuracy, so it should be part of the model’s metrics.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❾</span> Note that because the callback will monitor validation loss and validation accuracy, you need to pass validation_data to the call to fit.</p>
+  </div>
+
+  <p class="notetitle" id="ch07lev3sec4"><a id="ch07lev3sec4__title"></a>The ReduceLROnPlateau callback</p>
+
+  <p class="noind"><a id="iddle1945"></a>You can use this callback to reduce the learning rate when the validation loss has stopped improving. Reducing or increasing the learning rate in case of a <i class="calibre5">loss plateau</i> is is an effective strategy to get out of local minima during training. The following example uses the <kbd class="calibre24">ReduceLROnPlateau</kbd> callback:</p>
+  <pre class="calibre4" id="PLd0e24542">callbacks_list = [
+    keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss'                  <span class="cambriamathin">❶</span>
+        factor=0.1,                         <span class="cambriamathin">❷</span>
+        patience=10,                        <span class="cambriamathin">❸</span>
+    )
+]
+
+model.fit(x, y,                             <span class="cambriamathin">❹</span>
+          epochs=10,                        <span class="cambriamathin">❹</span>
+          batch_size=32,                    <span class="cambriamathin">❹</span>
+          callbacks=callbacks_list,         <span class="cambriamathin">❹</span>
+          validation_data=(x_val, y_val))   <span class="cambriamathin">❹</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Monitors the model’s validation loss</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Divides the learning rate by 10 when triggered</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> The callback is triggered after the validation loss has stopped improving for 10 epochs.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Because the callback will monitor the validation loss, you need to pass validation_data to the call to fit.</p>
+  </div>
+
+  <p class="notetitle" id="ch07lev3sec5"><a id="ch07lev3sec5__title"></a>Writing your own callback</p>
+
+  <p class="noind">If you need to take a specific action during training that isn’t covered by one of the built-in callbacks, you can write your own callback. Callbacks are implemented by subclassing the class <kbd class="calibre24">keras.callbacks.Callback</kbd>. You can then implement any number of the following transparently named methods, which are called at various points during training:</p>
+  <pre class="calibre4" id="PLd0e24626">on_epoch_begin         <span class="cambriamathin">❶</span>
+on_epoch_end           <span class="cambriamathin">❷</span>
+
+on_batch_begin         <span class="cambriamathin">❸</span>
+on_batch_end           <span class="cambriamathin">❹</span>
+
+on_train_begin         <span class="cambriamathin">❺</span>
+on_train_end           <span class="cambriamathin">❻</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Called at the start of every epoch</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Called at the end of every epoch</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Called right before processing each batch</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Called right after processing each batch</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❺</span> Called at the start of training</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❻</span> Called at the end of training</p>
+  </div>
+
+  <p class="noind"><a id="iddle1008"></a>These methods all are called with a <kbd class="calibre24">logs</kbd> argument, which is a dictionary containing information about the previous batch, epoch, or training run: training and validation metrics, and so on. Additionally, the callback has access to the following attributes:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17"><kbd class="calibre24">self.model</kbd>—The model instance from which the callback is being called</li>
+
+    <li class="calibre17"><kbd class="calibre24">self.validation_data</kbd>—The value of what was passed to <kbd class="calibre24">fit</kbd> as validation data</li>
+  </ul>
+
+  <p class="noind">Here’s a simple example of a custom callback that saves to disk (as Numpy arrays) the activations of every layer of the model at the end of every epoch, computed on the first sample of the validation set:</p>
+  <pre class="calibre4" id="PLd0e24741">import keras
+import numpy as np
+
+class ActivationLogger(keras.callbacks.Callback):
+
+    def set_model(self, model):
+        self.model = model                                               <span class="cambriamathin">❶</span>
+        layer_outputs = [layer.output for layer in model.layers]
+        self.activations_model = keras.models.Model(model.input,
+                                                    layer_outputs)       <span class="cambriamathin">❷</span>
+
+    def on_epoch_end(self, epoch, logs=None):
+        if self.validation_data is None:
+            raise RuntimeError('Requires validation_data.')
+
+        validation_sample = self.validation_data[0][0:1]                 <span class="cambriamathin">❸</span>
+        activations = self.activations_model.predict(validation_sample)
+        f = open('activations_at_epoch_' + str(epoch) + '.npz', 'w')     <span class="cambriamathin">❹</span>
+        np.savez(f, activations)                                         <span class="cambriamathin">❹</span>
+        f.close()                                                        <span class="cambriamathin">❹</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Called by the parent model before training, to inform the callback of what model will be calling it</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Model instance that returns the activations of every layer</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Obtains the first input sample of the validation data</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❹</span> Saves arrays to disk</p>
+  </div>
+
+  <p class="noind">This is all you need to know about callbacks—the rest is technical details, which you can easily look up. Now you’re equipped to perform any sort of logging or preprogrammed intervention on a Keras model during training.</p>
+
+  <h3 class="head1" id="ch07lev2sec9">7.2.2. <a id="ch07lev2sec9__title"></a>Introduction to TensorBoard: the TensorFlow visualization framework</h3>
+
+  <p class="noind">To do good research or develop good models, you need rich, frequent feedback about what’s going on inside your models during your experiments. That’s the point of running experiments: to get information about how well a model performs—as much information as possible. Making progress is an iterative process, or loop: you start with an idea and express it as an experiment, attempting to validate or invalidate your idea. You run this experiment and process the information it generates. This inspires your next idea. The more iterations of this loop you’re able to run, the more refined and powerful your ideas become. Keras helps you go from idea to experiment in the least possible time, and fast GPUs can help you get from experiment to result as quickly as possible. But what about processing the experiment results? That’s where TensorBoard comes in.</p>
+
+  <p class="notetitle" id="ch07fig09">Figure 7.9. <a id="ch07fig09__title"></a>The loop of progress</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig09.jpg"/></p>
+
+  <p class="noind">This section introduces TensorBoard, a browser-based visualization tool that comes packaged with TensorFlow. Note that it’s only available for Keras models when you’re using Keras with the TensorFlow backend.</p>
+
+  <p class="noind">The key purpose of TensorBoard is to help you visually monitor everything that goes on inside your model during training. If you’re monitoring more information than just the model’s final loss, you can develop a clearer vision of what the model does and doesn’t do, and you can make progress more quickly. TensorBoard gives you access to several neat features, all in your browser:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Visually monitoring metrics during training</li>
+
+    <li class="calibre17">Visualizing your model architecture</li>
+
+    <li class="calibre17">Visualizing histograms of activations and gradients</li>
+
+    <li class="calibre17">Exploring embeddings in 3D</li>
+  </ul>
+
+  <p class="noind">Let’s demonstrate these features on a simple example. You’ll train a 1D convnet on the IMDB sentiment-analysis task.</p>
+
+  <p class="noind">The model is similar to the one you saw in the last section of <a href="../Text/06.html#ch06">chapter 6</a>. You’ll consider only the top 2,000 words in the IMDB vocabulary, to make visualizing word embeddings more tractable.</p>
+
+  <p class="notetitle" id="ch07ex07">Listing 7.7. <a id="ch07ex07__title"></a>Text-classification model to use with TensorBoard</p>
+  <pre class="calibre4" id="PLd0e24875">import keras
+from keras import layers
+from keras.datasets import imdb
+from keras.preprocessing import sequence
+
+max_features = 2000                                              <span class="cambriamathin">❶</span>
+max_len = 500                                                    <span class="cambriamathin">❷</span>
+
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+x_train = sequence.pad_sequences(x_train, maxlen=max_len)
+x_test = sequence.pad_sequences(x_test, maxlen=max_len)
+
+model = keras.models.Sequential()
+model.add(layers.Embedding(max_features, 128,
+                           input_length=max_len,
+                           name='embed'))
+model.add(layers.Conv1D(32, 7, activation='relu'))
+model.add(layers.MaxPooling1D(5))
+model.add(layers.Conv1D(32, 7, activation='relu'))
+model.add(layers.GlobalMaxPooling1D())
+model.add(layers.Dense(1))
+model.summary()
+model.compile(optimizer='rmsprop',
+              loss='binary_crossentropy',
+              metrics=['acc'])</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><a id="iddle1767"></a><span class="cambriamathin1">❶</span> Number of words to consider as features</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Cuts off texts after this number of words (among max_features most common words)</p>
+  </div>
+
+  <p class="noind">Before you start using TensorBoard, you need to create a directory where you’ll store the log files it generates.</p>
+
+  <p class="notetitle" id="ch07ex08">Listing 7.8. <a id="ch07ex08__title"></a>Creating a directory for TensorBoard log files</p>
+  <pre class="calibre4" id="PLd0e24921">$ mkdir my_log_dir</pre>
+
+  <p class="noind">Let’s launch the training with a <kbd class="calibre24">TensorBoard</kbd> callback instance. This callback will write log events to disk at the specified location.</p>
+
+  <p class="notetitle" id="ch07ex09">Listing 7.9. <a id="ch07ex09__title"></a>Training the model with a <kbd class="calibre24">TensorBoard</kbd> callback</p>
+  <pre class="calibre4" id="PLd0e24939">callbacks = [
+    keras.callbacks.TensorBoard(
+        log_dir='my_log_dir',                  <span class="cambriamathin">❶</span>
+        histogram_freq=1,                      <span class="cambriamathin">❷</span>
+        embeddings_freq=1,                     <span class="cambriamathin">❸</span>
+    )
+]
+history = model.fit(x_train, y_train,
+                    epochs=20,
+                    batch_size=128,
+                    validation_split=0.2,
+                    callbacks=callbacks)</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Log files will be written at this location.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> Records activation histograms every 1 epoch</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❸</span> Records embedding data every 1 epoch</p>
+  </div>
+
+  <p class="noind">At this point, you can launch the TensorBoard server from the command line, instructing it to read the logs the callback is currently writing. The <kbd class="calibre24">tensorboard</kbd> utility should have been automatically installed on your machine the moment you installed TensorFlow (for example, via <kbd class="calibre24">pip</kbd>):</p>
+  <pre class="calibre4" id="PLd0e24993">$ tensorboard --logdir=my_log_dir</pre>
+
+  <p class="noind">You can then browse to http://localhost:6006 and look at your model training (see <a href="#ch07fig10">figure 7.10</a>). In addition to live graphs of the training and validation metrics, you get access to the Histograms tab, where you can find pretty visualizations of histograms of activation values taken by your layers (see <a href="#ch07fig11">figure 7.11</a>).</p>
+
+  <p class="notetitle" id="ch07fig10">Figure 7.10. <a id="ch07fig10__title"></a>TensorBoard: metrics monitoring</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig10_alt.jpg"/></p>
+
+  <p class="notetitle" id="ch07fig11">Figure 7.11. <a id="ch07fig11__title"></a>TensorBoard: activation histograms</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig11.jpg"/></p>
+
+  <p class="noind"><a id="iddle1363"></a><a id="iddle1805"></a>The Embeddings tab gives you a way to inspect the embedding locations and spatial relationships of the 10,000 words in the input vocabulary, as learned by the initial <kbd class="calibre24">Embedding</kbd> layer. Because the embedding space is 128-dimensional, TensorBoard automatically reduces it to 2D or 3D using a dimensionality-reduction algorithm of your choice: either principal component analysis (PCA) or t-distributed stochastic neighbor embedding (t-SNE). In <a href="#ch07fig12">figure 7.12</a>, in the point cloud, you can clearly see two clusters: words with a positive connotation and words with a negative connotation. The visualization makes it immediately obvious that embeddings trained jointly with a specific objective result in models that are completely specific to the underlying task—that’s the reason using pretrained generic word embeddings is rarely a good idea.</p>
+
+  <p class="notetitle" id="ch07fig12">Figure 7.12. <a id="ch07fig12__title"></a>TensorBoard: interactive 3D word-embedding visualization</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig12.jpg"/></p>
+
+  <p class="noind">The Graphs tab shows an interactive visualization of the graph of low-level TensorFlow operations underlying your Keras model (see <a href="#ch07fig13">figure 7.13</a>). As you can see, there’s a lot more going on than you would expect. The model you just built may look simple when defined in Keras—a small stack of basic layers—but under the hood, you need to construct a fairly complex graph structure to make it work. A lot of it is related to the gradient-descent process. This complexity differential between what you see and what you’re manipulating is the key motivation for using Keras as your way of building models, instead of working with raw TensorFlow to define everything from scratch. Keras makes your workflow dramatically simpler.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch07fig13">Figure 7.13. <a id="ch07fig13__title"></a>TensorBoard: TensorFlow graph visualization</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig13_alt.jpg"/></p>
+
+  <p class="noind"><a id="iddle1613"></a><a id="iddle1770"></a><a id="iddle1896"></a>Note that Keras also provides another, cleaner way to plot models as graphs of layers rather than graphs of TensorFlow operations: the utility <kbd class="calibre24">keras.utils.plot_model</kbd>. Using it requires that you’ve installed the Python <kbd class="calibre24">pydot</kbd> and <kbd class="calibre24">pydot-ng</kbd> libraries as well as the <kbd class="calibre24">graphviz</kbd> library. Let’s take a quick look:</p>
+  <pre class="calibre4" id="PLd0e25115">from keras.utils import plot_model
+
+plot_model(model, to_file='model.png')</pre>
+
+  <p class="noind">This creates the PNG image shown in <a href="#ch07fig14">figure 7.14</a>.</p>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch07fig14">Figure 7.14. <a id="ch07fig14__title"></a>A model plot as a graph of layers, generated with <kbd class="calibre24">plot_model</kbd></p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig14.jpg"/></p>
+
+  <p class="noind">You also have the option of displaying shape information in the graph of layers. This example visualizes model topology using <kbd class="calibre24">plot_model</kbd> and the <kbd class="calibre24">show_shapes</kbd> option (see <a href="#ch07fig15">figure 7.15</a>):</p>
+  <pre class="calibre4" id="PLd0e25156">from keras.utils import plot_model
+
+plot_model(model, show_shapes=True, to_file='model.png')</pre>
+
+  <p class="noind"></p>
+
+  <p class="notetitle" id="ch07fig15">Figure 7.15. <a id="ch07fig15__title"></a>A model plot with shape information</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig15.jpg"/></p>
+
+  <h3 class="head1" id="ch07lev2sec10">7.2.3. <a id="ch07lev2sec10__title"></a>Wrapping up</h3>
+
+  <ul class="calibre16">
+    <li class="calibre17"><a id="iddle1027"></a><a id="iddle1028"></a><a id="iddle1063"></a><a id="iddle1617"></a><a id="iddle1618"></a><a id="iddle1724"></a>Keras callbacks provide a simple way to monitor models during training and automatically take action based on the state of the model.</li>
+
+    <li class="calibre17">When you’re using TensorFlow, TensorBoard is a great way to visualize model activity in your browser. You can use it in Keras models via the <kbd class="calibre24">TensorBoard</kbd> callback.</li>
+  </ul>
+
+  <h2 class="head" id="ch07lev1sec3"><a class="calibre3" id="ch07lev1sec3__title"></a>7.3. Getting the most out of your models</h2>
+
+  <p class="noind"><a id="iddle1029"></a><a id="iddle1137"></a><a id="iddle1619"></a><a id="iddle1874"></a><a id="iddle1875"></a>Trying out architectures blindly works well enough if you just need something that works okay. In this section, we’ll go beyond “works okay” to “works great and wins machine-learning competitions” by offering you a quick guide to a set of must-know techniques for building state-of-the-art deep-learning models.</p>
+
+  <h3 class="head1" id="ch07lev2sec11">7.3.1. <a id="ch07lev2sec11__title"></a>Advanced architecture patterns</h3>
+
+  <p class="noind">We covered one important design pattern in detail in the previous section: residual connections. There are two more design patterns you should know about: normalization and depthwise separable convolution. These patterns are especially relevant when you’re building high-performing deep convnets, but they’re commonly found in many other types of architectures as well.</p>
+
+  <p class="notetitle" id="ch07lev3sec6"><a id="ch07lev3sec6__title"></a>Batch normalization</p>
+
+  <p class="noind"><i class="calibre5">Normalization</i> is a broad category of methods that seek to make different samples seen by a machine-learning model more similar to each other, which helps the model learn and generalize well to new data. The most common form of data normalization is one you’ve seen several times in this book already: centering the data on 0 by subtracting the mean from the data, and giving the data a unit standard deviation by dividing the data by its standard deviation. In effect, this makes the assumption that the data follows a normal (or Gaussian) distribution and makes sure this distribution is centered and scaled to unit variance:</p>
+  <pre class="calibre4" id="PLd0e25308">normalized_data = (data - np.mean(data, axis=...)) / np.std(data, axis=...)</pre>
+
+  <p class="noind">Previous examples normalized data before feeding it into models. But data normalization should be a concern after every transformation operated by the network: even if the data entering a <kbd class="calibre24">Dense</kbd> or <kbd class="calibre24">Conv2D</kbd> network has a 0 mean and unit variance, there’s no reason to expect a priori that this will be the case for the data coming out.</p>
+
+  <p class="noind">Batch normalization is a type of layer (<kbd class="calibre24">BatchNormalization</kbd> in Keras) introduced in 2015 by Ioffe and Szegedy;<sup class="calibre19">[<a href="#ch07fn07" class="calibre13">7</a>]</sup> it can adaptively normalize data even as the mean and variance change over time during training. It works by internally maintaining an exponential moving average of the batch-wise mean and variance of the data seen during training. The main effect of batch normalization is that it helps with gradient propagation—much like residual connections—and thus allows for deeper networks. Some very deep networks can only be trained if they include multiple <kbd class="calibre24">BatchNormalization</kbd> layers. For instance, <kbd class="calibre24">BatchNormalization</kbd> is used liberally in many of the advanced convnet architectures that come packaged with Keras, such as ResNet50, Inception V3, and Xception.</p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch07fn07" class="calibre13">7</a></sup></p>
+
+    <div class="calibre21">
+      Sergey Ioffe and Christian Szegedy, “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift,” <i class="calibre5">Proceedings of the 32nd International Conference on Machine Learning</i> (2015), <a href="https://arxiv.org/abs/1502.03167">https://arxiv.org/abs/1502.03167</a>.
+    </div>
+  </blockquote>
+
+  <p class="noind"><a id="iddle1403"></a>The <kbd class="calibre24">BatchNormalization</kbd> layer is typically used after a convolutional or densely connected layer:</p>
+  <pre class="calibre4" id="PLd0e25357">conv_model.add(layers.Conv2D(32, 3, activation='relu'))      <span class="cambriamathin">❶</span>
+conv_model.add(layers.BatchNormalization())
+
+dense_model.add(layers.Dense(32, activation='relu'))         <span class="cambriamathin">❷</span>
+dense_model.add(layers.BatchNormalization())</pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> After a Conv layer</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> After a Dense layer</p>
+  </div>
+
+  <p class="noind">The <kbd class="calibre24">BatchNormalization</kbd> layer takes an <kbd class="calibre24">axis</kbd> argument, which specifies the feature axis that should be normalized. This argument defaults to -1, the last axis in the input tensor. This is the correct value when using <kbd class="calibre24">Dense</kbd> layers, <kbd class="calibre24">Conv1D</kbd> layers, RNN layers, and <kbd class="calibre24">Conv2D</kbd> layers with <kbd class="calibre24">data_format</kbd> set to <kbd class="calibre24">"channels_last"</kbd>. But in the niche use case of <kbd class="calibre24">Conv2D</kbd> layers with <kbd class="calibre24">data_format</kbd> set to <kbd class="calibre24">"channels_first"</kbd>, the features axis is axis 1; the <kbd class="calibre24">axis</kbd> argument in <kbd class="calibre24">BatchNormalization</kbd> should accordingly be set to 1.</p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch07sb04">Batch renormalization</b>
+
+    <p class="noind">A recent improvement over regular batch normalization is <i class="calibre5">batch renormalization</i>, introduced by Ioffe in 2017.<sup class="calibre19">[<a href="#ch07tn01" class="calibre13">a</a>]</sup> It offers clear benefits over batch normalization, at no apparent cost. At the time of writing, it’s too early to tell whether it will supplant batch normalization—but I think it’s likely. Even more recently, Klambauer et al. introduced <i class="calibre5">self-normalizing neural networks</i>,<sup class="calibre19">[<a href="#ch07tn02" class="calibre13">b</a>]</sup> which manage to keep data normalized after going through any <kbd class="calibre24">Dense</kbd> layer by using a specific activation function (<kbd class="calibre24">selu</kbd>) and a specific initializer (<kbd class="calibre24">lecun_normal</kbd>). This scheme, although highly interesting, is limited to densely connected networks for now, and its usefulness hasn’t yet been broadly replicated.</p>
+
+    <blockquote class="smaller">
+      <p class="calibre20"><sup class="calibre19"><a id="ch07tn01" class="calibre13">a</a></sup></p>
+
+      <div class="calibre21">
+        Sergey Ioffe, “Batch Renormalization: Towards Reducing Minibatch Dependence in Batch-Normalized Models” (2017), <a href="https://arxiv.org/abs/1702.03275">https://arxiv.org/abs/1702.03275</a>.
+      </div>
+    </blockquote>
+
+    <blockquote class="smaller">
+      <p class="calibre20"><sup class="calibre19"><a id="ch07tn02" class="calibre13">b</a></sup></p>
+
+      <div class="calibre21">
+        Günter Klambauer et al., “Self-Normalizing Neural Networks,” Conference on Neural Information Processing Systems (2017), <a href="https://arxiv.org/abs/1706.02515">https://arxiv.org/abs/1706.02515</a>.
+      </div>
+    </blockquote>
+  </div>
+  <hr class="calibre25"/>
+
+  <p class="notetitle" id="ch07lev3sec7"><a id="ch07lev3sec7__title"></a>Depthwise separable convolution</p>
+
+  <p class="noind">What if I told you that there’s a layer you can use as a drop-in replacement for <kbd class="calibre24">Conv2D</kbd> that will make your model lighter (fewer trainable weight parameters) and faster (fewer floating-point operations) and cause it to perform a few percentage points better on its task? That is precisely what the <i class="calibre5">depthwise separable convolution</i> layer does (-<kbd class="calibre24">SeparableConv2D</kbd>). This layer performs a spatial convolution on each channel of its input, independently, before mixing output channels via a pointwise convolution (a 1 × 1 convolution), as shown in <a href="#ch07fig16">figure 7.16</a>. This is equivalent to separating the learning of spatial features and the learning of channel-wise features, which makes a lot of sense if you assume that spatial locations in the input are highly correlated, but different channels are fairly independent. It requires significantly fewer parameters and <a id="iddle1390"></a><a id="iddle1629"></a><a id="iddle1748"></a>involves fewer computations, thus resulting in smaller, speedier models. And because it’s a more representationally efficient way to perform convolution, it tends to learn better representations using less data, resulting in better-performing models.</p>
+
+  <p class="notetitle" id="ch07fig16">Figure 7.16. <a id="ch07fig16__title"></a>Depthwise separable convolution: a depthwise convolution followed by a pointwise convolution</p>
+
+  <p class="center2"><img alt="" class="calibre2" src="../Images/07fig16_alt.jpg"/></p>
+
+  <p class="noind">These advantages become especially important when you’re training small models from scratch on limited data. For instance, here’s how you can build a lightweight, depthwise separable convnet for an image-classification task (softmax categorical classification) on a small dataset:</p>
+  <pre class="calibre4" id="PLd0e25525">from keras.models import Sequential, Model
+from keras import layers
+
+height = 64
+width = 64
+channels = 3
+num_classes = 10
+
+model = Sequential()
+model.add(layers.SeparableConv2D(32, 3,
+                                 activation='relu',
+                                 input_shape=(height, width, channels,)))
+model.add(layers.SeparableConv2D(64, 3, activation='relu'))
+model.add(layers.MaxPooling2D(2))
+
+model.add(layers.SeparableConv2D(64, 3, activation='relu'))
+model.add(layers.SeparableConv2D(128, 3, activation='relu'))
+model.add(layers.MaxPooling2D(2))
+
+model.add(layers.SeparableConv2D(64, 3, activation='relu'))
+model.add(layers.SeparableConv2D(128, 3, activation='relu'))
+model.add(layers.GlobalAveragePooling2D())
+
+model.add(layers.Dense(32, activation='relu'))
+model.add(layers.Dense(num_classes, activation='softmax'))
+
+model.compile(optimizer='rmsprop', loss='categorical_crossentropy')</pre>
+
+  <p class="noind"><a id="iddle1261"></a><a id="iddle1388"></a><a id="iddle1389"></a><a id="iddle1627"></a>When it comes to larger-scale models, depthwise separable convolutions are the basis of the Xception architecture, a high-performing convnet that comes packaged with Keras. You can read more about the theoretical grounding for depthwise separable convolutions and Xception in my paper “Xception: Deep Learning with Depthwise Separable Convolutions.”<sup class="calibre19">[<a href="#ch07fn08" class="calibre13">8</a>]</sup></p>
+
+  <blockquote class="smaller">
+    <p class="calibre20"><sup class="calibre19"><a id="ch07fn08" class="calibre13">8</a></sup></p>
+
+    <div class="calibre21">
+      See note 5 above.
+    </div>
+  </blockquote>
+
+  <h3 class="head1" id="ch07lev2sec12">7.3.2. <a id="ch07lev2sec12__title"></a>Hyperparameter optimization</h3>
+
+  <p class="noind">When building a deep-learning model, you have to make many seemingly arbitrary decisions: How many layers should you stack? How many units or filters should go in each layer? Should you use <kbd class="calibre24">relu</kbd> as activation, or a different function? Should you use <kbd class="calibre24">BatchNormalization</kbd> after a given layer? How much dropout should you use? And so on. These architecture-level parameters are called <i class="calibre5">hyperparameters</i> to distinguish them from the parameters of a model, which are trained via backpropagation.</p>
+
+  <p class="noind">In practice, experienced machine-learning engineers and researchers build intuition over time as to what works and what doesn’t when it comes to these choices—they develop hyperparameter-tuning skills. But there are no formal rules. If you want to get to the very limit of what can be achieved on a given task, you can’t be content with arbitrary choices made by a fallible human. Your initial decisions are almost always suboptimal, even if you have good intuition. You can refine your choices by tweaking them by hand and retraining the model repeatedly—that’s what machine-learning engineers and researchers spend most of their time doing. But it shouldn’t be your job as a human to fiddle with hyperparameters all day—that is better left to a machine.</p>
+
+  <p class="noind">Thus you need to explore the space of possible decisions automatically, systematically, in a principled way. You need to search the architecture space and find the best-performing ones empirically. That’s what the field of automatic hyperparameter optimization is about: it’s an entire field of research, and an important one.</p>
+
+  <p class="noind">The process of optimizing hyperparameters typically looks like this:</p>
+
+  <ol class="calibre23">
+    <li class="calibre17">Choose a set of hyperparameters (automatically).</li>
+
+    <li class="calibre17">Build the corresponding model.</li>
+
+    <li class="calibre17">Fit it to your training data, and measure the final performance on the validation data.</li>
+
+    <li class="calibre17">Choose the next set of hyperparameters to try (automatically).</li>
+
+    <li class="calibre17">Repeat.</li>
+
+    <li class="calibre17">Eventually, measure performance on your test data.</li>
+  </ol>
+
+  <p class="noind">The key to this process is the algorithm that uses this history of validation performance, given various sets of hyperparameters, to choose the next set of hyperparameters to evaluate. Many different techniques are possible: Bayesian optimization, genetic algorithms, simple random search, and so on.</p>
+
+  <p class="noind">Training the weights of a model is relatively easy: you compute a loss function on a mini-batch of data and then use the Backpropagation algorithm to move the weights in the right direction. Updating hyperparameters, on the other hand, is extremely challenging. Consider the following:</p>
+
+  <ul class="calibre16">
+    <li class="calibre17">Computing the feedback signal (does this set of hyperparameters lead to a high-performing model on this task?) can be extremely expensive: it requires creating and training a new model from scratch on your dataset.</li>
+
+    <li class="calibre17">The hyperparameter space is typically made of discrete decisions and thus isn’t continuous or differentiable. Hence, you typically can’t do gradient descent in hyperparameter space. Instead, you must rely on gradient-free optimization techniques, which naturally are far less efficient than gradient descent.</li>
+  </ul>
+
+  <p class="noind">Because these challenges are difficult and the field is still young, we currently only have access to very limited tools to optimize models. Often, it turns out that random search (choosing hyperparameters to evaluate at random, repeatedly) is the best solution, despite being the most naive one. But one tool I have found reliably better than random search is Hyperopt (<a href="https://github.com/hyperopt/hyperopt">https://github.com/hyperopt/hyperopt</a>), a Python library for hyperparameter optimization that internally uses trees of Parzen estimators to predict sets of hyperparameters that are likely to work well. Another library called Hyperas (<a href="https://github.com/maxpumperla/hyperas">https://github.com/maxpumperla/hyperas</a>) integrates Hyperopt for use with Keras models. Do check it out.</p>
+  <hr class="calibre25"/>
+
+  <p class="notetitle" id="ch07note01">Note</p>
+
+  <p class="noindclose">One important issue to keep in mind when doing automatic hyperparameter optimization at scale is validation-set overfitting. Because you’re updating hyperparameters based on a signal that is computed using your validation data, you’re effectively training them on the validation data, and thus they will quickly overfit to the validation data. Always keep this in mind.</p>
+  <hr class="calibre25"/>
+
+  <p class="noind">Overall, hyperparameter optimization is a powerful technique that is an absolute requirement to get to state-of-the-art models on any task or to win machine-learning competitions. Think about it: once upon a time, people handcrafted the features that went into shallow machine-learning models. That was very much suboptimal. Now, deep learning automates the task of hierarchical feature engineering—features are learned using a feedback signal, not hand-tuned, and that’s the way it should be. In the same way, you shouldn’t handcraft your model architectures; you should optimize them in a principled way. At the time of writing, the field of automatic hyperparameter optimization is very young and immature, as deep learning was some years ago, but I expect it to boom in the next few years.</p>
+
+  <h3 class="head1" id="ch07lev2sec13">7.3.3. <a id="ch07lev2sec13__title"></a>Model ensembling</h3>
+
+  <p class="noind">Another powerful technique for obtaining the best possible results on a task is <i class="calibre5">model ensembling</i>. Ensembling consists of pooling together the predictions of a set of different models, to produce better predictions. If you look at machine-learning competitions, <a id="iddle1195"></a><a id="iddle1456"></a>in particular on Kaggle, you’ll see that the winners use very large ensembles of models that inevitably beat any single model, no matter how good.</p>
+
+  <p class="noind">Ensembling relies on the assumption that different good models trained independently are likely to be good for <i class="calibre5">different reasons</i>: each model looks at slightly different aspects of the data to make its predictions, getting part of the “truth” but not all of it. You may be familiar with the ancient parable of the blind men and the elephant: a group of blind men come across an elephant for the first time and try to understand what the elephant is by touching it. Each man touches a different part of the elephant’s body—just one part, such as the trunk or a leg. Then the men describe to each other what an elephant is: “It’s like a snake,” “Like a pillar or a tree,” and so on. The blind men are essentially machine-learning models trying to understand the manifold of the training data, each from its own perspective, using its own assumptions (provided by the unique architecture of the model and the unique random weight initialization). Each of them gets part of the truth of the data, but not the whole truth. By pooling their perspectives together, you can get a far more accurate description of the data. The elephant is a combination of parts: not any single blind man gets it quite right, but, interviewed together, they can tell a fairly accurate story.</p>
+
+  <p class="noind">Let’s use classification as an example. The easiest way to pool the predictions of a set of classifiers (to <i class="calibre5">ensemble the classifiers</i>) is to average their predictions at inference time:</p>
+  <pre class="calibre4" id="PLd0e25701">preds_a = model_a.predict(x_val)                                  <span class="cambriamathin">❶</span>
+preds_b = model_b.predict(x_val)                                  <span class="cambriamathin">❶</span>
+preds_c = model_c.predict(x_val)                                  <span class="cambriamathin">❶</span>
+preds_d = model_d.predict(x_val)                                  <span class="cambriamathin">❶</span>
+
+final_preds = 0.25 * (preds_a + preds_b + preds_c + preds_d)      <span class="cambriamathin">❷</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> Use four different models to compute initial predictions.</p>
+
+    <p class="codeannotation"><span class="cambriamathin1">❷</span> This new prediction array should be more accurate than any of the initial ones.</p>
+  </div>
+
+  <p class="noind">This will work only if the classifiers are more or less equally good. If one of them is significantly worse than the others, the final predictions may not be as good as the best classifier of the group.</p>
+
+  <p class="noind">A smarter way to ensemble classifiers is to do a weighted average, where the weights are learned on the validation data—typically, the better classifiers are given a higher weight, and the worse classifiers are given a lower weight. To search for a good set of ensembling weights, you can use random search or a simple optimization algorithm such as Nelder-Mead:</p>
+  <pre class="calibre4" id="PLd0e25751">preds_a = model_a.predict(x_val)
+preds_b = model_b.predict(x_val)
+preds_c = model_c.predict(x_val)
+preds_d = model_d.predict(x_val)
+
+final_preds = 0.5 * preds_a + 0.25 * preds_b + 0.1 * preds_c + 0.15 * preds_d <span class="cambriamathin">❶</span></pre>
+
+  <div class="annotations">
+    <p class="codeannotation"><span class="cambriamathin1">❶</span> These weights (0.5, 0.25, 0.1, 0.15) are assumed to be learned empirically.</p>
+  </div>
+
+  <p class="noind">There are many possible variants: you can do an average of an exponential of the predictions, for instance. In general, a simple weighted average with weights optimized on the validation data provides a very strong baseline.</p>
+
+  <p class="noind">The key to making ensembling work is the <i class="calibre5">diversity</i> of the set of classifiers. Diversity is strength. If all the blind men only touched the elephant’s trunk, they would agree that elephants are like snakes, and they would forever stay ignorant of the truth of the elephant. Diversity is what makes ensembling work. In machine-learning terms, if all of your models are biased in the same way, then your ensemble will retain this same bias. If your models are <i class="calibre5">biased in different ways</i>, the biases will cancel each other out, and the ensemble will be more robust and more accurate.</p>
+
+  <p class="noind">For this reason, you should ensemble models that are <i class="calibre5">as good as possible</i> while being <i class="calibre5">as different as possible</i>. This typically means using very different architectures or even different brands of machine-learning approaches. One thing that is largely <i class="calibre5">not</i> worth doing is ensembling the same network trained several times independently, from different random initializations. If the only difference between your models is their random initialization and the order in which they were exposed to the training data, then your ensemble will be low-diversity and will provide only a tiny improvement over any single model.</p>
+
+  <p class="noind">One thing I have found to work well in practice—but that doesn’t generalize to every problem domain—is the use of an ensemble of tree-based methods (such as random forests or gradient-boosted trees) and deep neural networks. In 2014, partner Andrei Kolev and I took fourth place in the Higgs Boson decay detection challenge on Kaggle (<a href="http://www.kaggle.com/c/higgs-boson">www.kaggle.com/c/higgs-boson</a>) using an ensemble of various tree models and deep neural networks. Remarkably, one of the models in the ensemble originated from a different method than the others (it was a regularized greedy forest) and had a significantly worse score than the others. Unsurprisingly, it was assigned a small weight in the ensemble. But to our surprise, it turned out to improve the overall ensemble by a large factor, because it was so different from every other model: it provided information that the other models didn’t have access to. That’s precisely the point of ensembling. It’s not so much about how good your best model is; it’s about the diversity of your set of candidate models.</p>
+
+  <p class="noind">In recent times, one style of basic ensemble that has been very successful in practice is the <i class="calibre5">wide and deep</i> category of models, blending deep learning with shallow learning. Such models consist of jointly training a deep neural network with a large linear model. The joint training of a family of diverse models is yet another option to achieve model ensembling.</p>
+
+  <h3 class="head1" id="ch07lev2sec14">7.3.4. <a id="ch07lev2sec14__title"></a>Wrapping up</h3>
+
+  <ul class="calibre16">
+    <li class="calibre17">When building high-performing deep convnets, you’ll need to use residual connections, batch normalization, and depthwise separable convolutions. In the future, it’s likely that depthwise separable convolutions will completely replace regular convolutions, whether for 1D, 2D, or 3D applications, due to their higher representational efficiency.</li>
+
+    <li class="calibre17">Building deep networks requires making many small hyperparameter and architecture choices, which together define how good your model will be. Rather than basing these choices on intuition or random chance, it’s better to systematically search hyperparameter space to find optimal choices. At this time, the process is expensive, and the tools to do it aren’t very good. But the Hyperopt and Hyperas libraries may be able to help you. When doing hyperparameter optimization, be mindful of validation-set overfitting!</li>
+
+    <li class="calibre17">Winning machine-learning competitions or otherwise obtaining the best possible results on a task can only be done with large ensembles of models. Ensembling via a well-optimized weighted average is usually good enough. Remember: diversity is strength. It’s largely pointless to ensemble very similar models; the best ensembles are sets of models that are as dissimilar as possible (while having as much predictive power as possible, naturally).</li>
+  </ul>
+
+  <p class="noind"></p>
+  <hr class="calibre25"/>
+
+  <div class="calibre14">
+    <b class="calibre26" id="ch07sb05">Chapter summary</b>
+
+    <ul class="calibre16">
+      <li class="calibre17">
+        <a id="iddle1543"></a>In this chapter, you learned the following:
+
+        <ul class="calibre28">
+          <li class="calibre29">How to build models as arbitrary graphs of layers, reuse layers (layer weight sharing), and use models as Python functions (model templating).</li>
+
+          <li class="calibre29">You can use Keras callbacks to monitor your models during training and take action based on model state.</li>
+
+          <li class="calibre29">TensorBoard allows you to visualize metrics, activation histograms, and even embedding spaces.</li>
+
+          <li class="calibre29">What batch normalization, depthwise separable convolution, and residual connections are.</li>
+
+          <li class="calibre29">Why you should use hyperparameter optimization and model ensembling.</li>
+        </ul>
+      </li>
+
+      <li class="calibre17">With these new tools, you’re better equipped to use deep learning in the real world and start building highly competitive deep-learning models.</li>
+    </ul>
+  </div>
+  <hr class="calibre25"/>
+
+  <div class="calibre14" id="calibre_pb_28"></div>
+</body>
+</html>
